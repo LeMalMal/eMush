@@ -1,5 +1,6 @@
 import { RichBlock } from '../api/gameText';
 import { Language, RankingSort } from '../api/models';
+import { AppSettings } from '../background/settingsModel';
 
 // View models sent to the shell page over IPC: plain, JSON-serializable, already formatted for display.
 
@@ -10,7 +11,7 @@ export type Pager = { page: number; pageCount: number };
 /** Every page load either succeeds or explains what went wrong; the shell then offers a retry. */
 export type Loaded<T> = { ok: true; view: T } | { ok: false; message: string };
 
-export type ShellCommand = 'play' | 'login' | 'logout' | 'wiki';
+export type ShellCommand = 'play' | 'login' | 'logout' | 'wiki' | 'test-notification';
 
 /** Who is signed in, for the navigation bar. */
 export type AccountView = { username: string | null };
@@ -72,3 +73,12 @@ export type CrewCharacterView = {
 };
 export type CrewChoice = { status: 'choose'; language: Language; shipId: number; aboard: number; characters: CrewCharacterView[] };
 export type CrewView = { status: 'signed-out' } | { status: 'rules' } | { status: 'aboard' } | CrewChoice;
+
+export type ClientInfo = {
+    version: string;
+    /** Launching with Windows needs the installed app (a dev build would register Electron itself). */
+    canLaunchAtStartup: boolean;
+    sourceCodeUrl: string;
+};
+
+export type SettingsView = { settings: AppSettings; client: ClientInfo };

@@ -7,6 +7,7 @@ import { LoadAccount, LoadHome } from '../pages/home';
 import { LoadArticle, LoadNews } from '../pages/news';
 import { LoadProfile } from '../pages/profile';
 import { LoadRanking } from '../pages/ranking';
+import { LoadSettings, UpdateSettings } from '../pages/settings';
 import { GameView } from './GameView';
 import { EMUSH_WIKI_URL, Navigation, parseNavigation, resolvePlay } from './routes';
 import { ShellNavigator } from './ShellNavigator';
@@ -19,6 +20,8 @@ export type ShellDependencies = {
     api: EmushApi;
     session: Session;
     navigationPolicy: NavigationPolicy;
+    settingsPage: { load: LoadSettings; update: UpdateSettings };
+    testNotification(): void;
 };
 
 export type Shell = {
@@ -28,13 +31,13 @@ export type Shell = {
     showHome(): void;
 };
 
-const SHELL_COMMANDS = ['play', 'login', 'logout', 'wiki'] as const;
+const SHELL_COMMANDS = ['play', 'login', 'logout', 'wiki', 'test-notification'] as const;
 
 /**
  * Wires the shell page (navigation bar + native pages) to the main process.
  * Every IPC message is checked: it must come from the shell page itself, with a valid payload.
  */
-export function installShell({ window, shellFile, gameView, serverUrl, api, session, navigationPolicy }: ShellDependencies): Shell {
+export function installShell({ window, shellFile, gameView, serverUrl, api, session, navigationPolicy, settingsPage, testNotification }: ShellDependencies): Shell {
     const shellUrl = pathToFileURL(shellFile).toString();
     const shellContents = window.webContents;
 
@@ -51,6 +54,7 @@ export function installShell({ window, shellFile, gameView, serverUrl, api, sess
         ranking: new LoadRanking(api),
         profile: new LoadProfile(api),
         crew: new LoadCrew(api),
+        settings: settingsPage.load,
     };
     const joinCrew = new JoinCrew(api);
 
@@ -86,6 +90,15 @@ export function installShell({ window, shellFile, gameView, serverUrl, api, sess
         }
 
         return result;
+    });
+
+    ipcMain.handle('shell:update-settings', (event, change: unknown) => {
+        if (!fromShell(event)) {
+            reject('shell:update-settings', change);
+            return null;
+        }
+
+        return settingsPage.update.execute(change);
     });
 
     ipcMain.on('shell:navigate', (event, request: unknown) => {
@@ -129,6 +142,9 @@ export function installShell({ window, shellFile, gameView, serverUrl, api, sess
                 break;
             case 'wiki':
                 void shell.openExternal(EMUSH_WIKI_URL);
+                break;
+            case 'test-notification':
+                testNotification();
                 break;
         }
     });

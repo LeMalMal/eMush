@@ -49,6 +49,20 @@ The shell reuses the game's own design language (`App/src/assets/scss`), not a g
 - **Pixel art** at integer scales with `image-rendering: pixelated`: 16 px icons (triumph, skull,
   planets), character heads and body sprites on the character-selection pedestal.
 
+## Background, notifications and settings
+
+- **Notification area icon** (next to the clock): open, resume the game, current day/cycle, unread
+  messages and alerts, notification toggles, test notification, settings, quit.
+- **Closing the window keeps eMush running** in the notification area (setting); minimizing there is optional.
+- **Background watch** (`src/main/background/`): checks the game right after each new cycle and every
+  minute for the chat, then raises Windows notifications for new cycles, new days, ship alerts (fire,
+  hunters, oxygen…), chat messages (with the author and the start of the message) and death. Nothing is
+  shown while the window is in front of the player. Clicking a notification opens the game.
+- **Taskbar**: a badge while chat messages are unread, a flash when a cycle, a day or an alert begins.
+- **Settings page** (native): notifications, background behaviour, launch with Windows and start in
+  the background (installed app only), automatic game zoom and its adjustment, licences and source code.
+  Settings live in `%APPDATA%/eMush/settings.json` (`SettingsService` validates every change).
+
 ## Other desktop features
 
 | Feature | Details |

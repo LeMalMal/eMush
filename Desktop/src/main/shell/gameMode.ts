@@ -34,6 +34,11 @@ export function fitGameZoom(view: { width: number; height: number }, playerOffse
     return clamp(stepped + playerOffset, MIN_GAME_ZOOM, MAX_GAME_ZOOM);
 }
 
+/** Zoom when the automatic fit is off: natural size plus the player's adjustment. */
+export function manualGameZoom(playerOffset: number): number {
+    return clamp(1 + playerOffset, 0.5, MAX_GAME_ZOOM);
+}
+
 function clamp(value: number, min: number, max: number): number {
     return Math.min(max, Math.max(min, value));
 }

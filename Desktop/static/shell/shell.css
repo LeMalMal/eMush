@@ -374,3 +374,21 @@ dialog .actions { display: flex; gap: 10px; justify-content: flex-end; margin-to
     .loader i { animation: none; }
     .card-char { transition: none; }
 }
+
+/* ---------- settings ---------- */
+.setting { display: flex; gap: 12px; align-items: flex-start; cursor: pointer; padding: 6px 0; }
+.setting.disabled { cursor: not-allowed; opacity: .5; }
+.setting-text { display: grid; gap: 2px; }
+.setting-text b { font: 700 14px var(--font-text); }
+.setting-text span { font-size: 13px; color: var(--soft); }
+/* Square pixel checkbox: deep blue slot with a lit green square when checked. */
+.pixel-check {
+    appearance: none; flex: none; width: 18px; height: 18px; margin: 2px 0 0; cursor: inherit;
+    background: var(--deep-blue); box-shadow: inset 0 0 0 2px var(--slot-edge);
+}
+.pixel-check:checked { background: var(--green); box-shadow: inset 0 0 0 2px #c7ff6e, inset 0 0 0 4px var(--deep-blue); }
+.pixel-check:focus-visible { outline: 2px solid var(--bright-cyan); outline-offset: 2px; }
+.zoom-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; padding: 6px 0; }
+.stepper { display: flex; align-items: center; gap: 10px; }
+.stepper .btn { width: 34px; padding-inline: 0; font-size: 18px; }
+.stepper .label { min-width: 150px; text-align: center; }

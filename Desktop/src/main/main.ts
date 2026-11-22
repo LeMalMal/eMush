@@ -11,8 +11,24 @@ import { installShell } from './shell/installShell';
 import { connectToSteam } from './steam/connectToSteam';
 import { createMainWindow } from './window/createMainWindow';
 import { JsonFileWindowStateStore } from './window/JsonFileWindowStateStore';
+import { JsonFileSettingsStore, SettingsService } from './background/settings';
+import { LoadSettings, UpdateSettings } from './pages/settings';
+import { Background, installBackground } from './tray/installBackground';
 
 // Composition root: everything is wired here, the modules themselves stay framework-light.
+
+/** Must match `appId` in electron-builder.yml (used by the installer's Start menu shortcut). */
+const APP_USER_MODEL_ID = 'io.github.lemalmal.emush-desktop';
+/** Passed by Windows when it starts eMush at login (see applyLaunchAtStartup). */
+const STARTED_WITH_WINDOWS_FLAG = '--started-with-windows';
+const SOURCE_CODE_URL = 'https://github.com/LeMalMal/eMush/tree/feat/desktop-client/Desktop';
+
+/** Registers (or removes) eMush in the Windows startup apps. Installed builds only. */
+function applyLaunchAtStartup(enabled: boolean): void {
+    if (app.isPackaged) {
+        app.setLoginItemSettings({ openAtLogin: enabled, args: [STARTED_WITH_WINDOWS_FLAG] });
+    }
+}
 
 function start(): void {
     if (!app.requestSingleInstanceLock()) {
@@ -44,8 +60,13 @@ function start(): void {
         if (mainWindow.isMinimized()) {
             mainWindow.restore();
         }
+        mainWindow.show(); // It may be hidden in the notification area.
         mainWindow.focus();
     });
+
+    if (app.isPackaged) {
+        app.setAppUserModelId(APP_USER_MODEL_ID); // Windows notifications are attributed to eMush.
+    }
 
     app.on('window-all-closed', () => app.quit());
 
@@ -59,11 +80,21 @@ function start(): void {
 
         const distDir = path.join(__dirname, '..');
         const staticDir = path.join(distDir, 'static');
+        const settings = new SettingsService(new JsonFileSettingsStore(path.join(app.getPath('userData'), 'settings.json')));
+        applyLaunchAtStartup(settings.get().launchAtStartup);
+        settings.onChange((next, previous) => {
+            if (next.launchAtStartup !== previous.launchAtStartup) {
+                applyLaunchAtStartup(next.launchAtStartup);
+            }
+        });
+        const startedWithWindows = process.argv.includes(STARTED_WITH_WINDOWS_FLAG);
+
         const window = createMainWindow({
             windowStateStore: new JsonFileWindowStateStore(path.join(app.getPath('userData'), 'window-state.json')),
             iconPath: resolveIconPath(),
             shellPreload: path.join(distDir, 'preload', 'shell.js'),
             devTools: config.devTools,
+            showOnReady: !(startedWithWindows && settings.get().startMinimized),
         });
         mainWindow = window;
         window.on('closed', () => {
@@ -76,15 +107,34 @@ function start(): void {
             staticDir,
             serverOrigin: config.serverUrl.origin,
             devTools: config.devTools,
+            settings,
         });
+        const api = new EmushApi(config.serverUrl, sessionHttp(session.defaultSession));
+        const client = { version: app.getVersion(), canLaunchAtStartup: app.isPackaged, sourceCodeUrl: SOURCE_CODE_URL };
+        let background: Background | null = null;
         const shell = installShell({
             window,
             shellFile: path.join(staticDir, 'shell', 'index.html'),
             gameView,
             serverUrl: config.serverUrl,
-            api: new EmushApi(config.serverUrl, sessionHttp(session.defaultSession)),
+            api,
             session: session.defaultSession,
             navigationPolicy,
+            settingsPage: { load: new LoadSettings(settings, client), update: new UpdateSettings(settings, client) },
+            testNotification: () => background?.testNotification(),
+        });
+
+        background = installBackground({
+            window,
+            api,
+            navigator: shell.navigator,
+            settings,
+            icons: {
+                tray: path.join(staticDir, 'icons', 'tray.png'),
+                badge: path.join(staticDir, 'icons', 'badge.png'),
+                notification: path.join(staticDir, 'icons', 'notification.png'),
+            },
+            trace: config.devTools,
         });
 
         Menu.setApplicationMenu(buildApplicationMenu({

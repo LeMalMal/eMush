@@ -26,6 +26,13 @@ for (const font of ['DaysOne-Regular.ttf', 'Pixel_Square.ttf', 'eKanit-Light.ttf
 }
 
 copy(join(webClient, 'public', 'emush-logo.png'), join(img, 'logo.png'));
+
+// Notification area icon, taskbar badge (unread messages) and notification icon.
+const appIcons = join(root, 'dist', 'static', 'icons');
+mkdirSync(appIcons, { recursive: true });
+copy(join(webClient, 'public', 'pwa-64x64.png'), join(appIcons, 'tray.png'));
+copy(join(images, 'ui_icons', 'point.png'), join(appIcons, 'badge.png'));
+copy(join(webClient, 'public', 'pwa-192x192.png'), join(appIcons, 'notification.png'));
 copy(join(images, 'bg.jpg'), join(img, 'bg.jpg'));
 copy(join(images, 'daedalus_home.png'), join(img, 'daedalus.png'));
 

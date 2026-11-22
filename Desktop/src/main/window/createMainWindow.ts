@@ -10,10 +10,12 @@ export type MainWindowDependencies = {
     /** Preload of the shell page (navigation bar + native pages) drawn in the window itself. */
     shellPreload: string;
     devTools: boolean;
+    /** False when started with Windows to stay in the notification area. */
+    showOnReady: boolean;
 };
 
 /** The application window. Its own page is the shell; the web game is added as a child view. */
-export function createMainWindow({ windowStateStore, iconPath, shellPreload, devTools }: MainWindowDependencies): BrowserWindow {
+export function createMainWindow({ windowStateStore, iconPath, shellPreload, devTools, showOnReady }: MainWindowDependencies): BrowserWindow {
     const workAreas = screen.getAllDisplays().map((display) => display.workArea);
     const state = fitToDisplays(windowStateStore.load() ?? DEFAULT_WINDOW_STATE, workAreas);
 
@@ -37,14 +39,21 @@ export function createMainWindow({ windowStateStore, iconPath, shellPreload, dev
         },
     });
 
-    if (state.isMaximized) {
-        window.maximize();
+    // Maximizing also shows the window on Windows: when starting hidden, wait until it is shown.
+    const restoreState = (): void => {
+        if (state.isMaximized) {
+            window.maximize();
+        }
+        if (state.isFullScreen) {
+            window.setFullScreen(true);
+        }
+    };
+    if (showOnReady) {
+        restoreState();
+        window.once('ready-to-show', () => window.show());
+    } else {
+        window.once('show', restoreState);
     }
-    if (state.isFullScreen) {
-        window.setFullScreen(true);
-    }
-
-    window.once('ready-to-show', () => window.show());
     trackWindowState(window, windowStateStore);
 
     return window;

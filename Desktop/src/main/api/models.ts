@@ -18,6 +18,8 @@ export type PlayerStatus = 'in_game' | 'finished' | 'closed';
 
 export type PlayerSummary = {
     id: number;
+    /** The player's Daedalus (null if the API did not say). */
+    shipId: number | null;
     characterKey: string;
     characterName: string;
     status: PlayerStatus;
@@ -84,3 +86,12 @@ export type CrewCharacter = {
 };
 
 export type CrewOffer = { shipId: number; characters: CrewCharacter[] };
+
+/** A chat channel of the active player, with its number of unread messages. */
+export type ChannelSummary = { id: number; scope: string; name: string; unread: number };
+
+/** An alert of the Daedalus (fire, hunters, low oxygen...). */
+export type ShipAlert = { key: string; name: string; description: string };
+
+/** A chat message (or a reply), with its author's character name. */
+export type ChatMessage = { id: number; author: string; text: string; unread: boolean; replies: ChatMessage[] };

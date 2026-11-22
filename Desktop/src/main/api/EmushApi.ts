@@ -1,10 +1,10 @@
 import {
-    Account, Achievement, CrewOffer, GameCounters, Language, NewsArticle, NewsSummary, Page, PlayerSummary,
-    RankedShip, RankingSort, ShipHistoryEntry, Statistic,
+    Account, Achievement, ChannelSummary, ChatMessage, CrewOffer, GameCounters, Language, NewsArticle, NewsSummary, Page, PlayerSummary,
+    RankedShip, RankingSort, ShipAlert, ShipHistoryEntry, Statistic,
 } from './models';
 import {
-    parseAccount, parseAchievements, parseApiError, parseArticle, parseCounters, parseCrewOffer, parseNewsPage,
-    parsePlayer, parseRanking, parseShipHistory, parseStatistics,
+    parseAccount, parseAchievements, parseAlerts, parseApiError, parseArticle, parseChannels, parseCounters, parseCrewOffer, parseNewsPage,
+    parseMessages, parsePlayer, parseRanking, parseShipHistory, parseStatistics,
 } from './parsers';
 
 export type HttpResponse = { status: number; json(): Promise<unknown> };
@@ -105,6 +105,27 @@ export class EmushApi {
         const response = await this.get(`achievements?${new URLSearchParams({ userId: uuid, language: 'fr', gender: 'male' })}`);
 
         return response.status === 200 ? parseAchievements(await response.json()) : [];
+    }
+
+    /** Chat channels of the active player, with unread counts (empty when not in a game). */
+    async channels(): Promise<ChannelSummary[]> {
+        const response = await this.get('channel');
+
+        return response.status === 200 ? parseChannels(await response.json()) : [];
+    }
+
+    /** Current alerts of a Daedalus. */
+    async alerts(shipId: number): Promise<ShipAlert[]> {
+        const response = await this.get(`alert/${shipId}/alerts`);
+
+        return response.status === 200 ? parseAlerts(await response.json()) : [];
+    }
+
+    /** Recent messages of a channel (newest first), with replies. */
+    async channelMessages(channelId: number): Promise<ChatMessage[]> {
+        const response = await this.get(`channel/${channelId}/message?timeLimit=24`);
+
+        return response.status === 200 ? parseMessages(await response.json()) : [];
     }
 
     /** The ship currently boarding for this language, created by the server if needed (as the web client does). */

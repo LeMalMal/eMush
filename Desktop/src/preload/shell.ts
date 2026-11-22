@@ -7,6 +7,7 @@ import { contextBridge, ipcRenderer } from 'electron';
 contextBridge.exposeInMainWorld('emushShell', Object.freeze({
     load: (page: string, params?: unknown) => ipcRenderer.invoke('shell:load', page, params),
     join: (request: unknown) => ipcRenderer.invoke('shell:join', request),
+    updateSettings: (change: unknown) => ipcRenderer.invoke('shell:update-settings', change),
     navigate: (navigation: unknown) => ipcRenderer.send('shell:navigate', navigation),
     command: (command: string) => ipcRenderer.send('shell:command', command),
     openLink: (url: string) => ipcRenderer.send('shell:open-link', url),

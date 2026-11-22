@@ -2,7 +2,7 @@ import { Account } from '../api/models';
 import { UUID } from '../api/parsers';
 
 /** Pages drawn by the client itself, in the shell window. */
-export const NATIVE_PAGES = ['home', 'crew', 'news', 'article', 'ranking', 'profile'] as const;
+export const NATIVE_PAGES = ['home', 'crew', 'news', 'article', 'ranking', 'profile', 'settings'] as const;
 /** Pages of the web game (or Eternaltwin), shown in the web view under the shell's navigation bar. */
 export const WEB_PAGES = ['game', 'forum', 'rules', 'ship', 'login', 'web'] as const;
 
@@ -16,7 +16,7 @@ export const EMUSH_FORUM_URL = 'https://eternaltwin.org/forum/sections/b5ddc792-
 export const EMUSH_WIKI_URL = 'https://fr.emushpedia.com/';
 
 /** Pages the shell UI may ask for. `login` and `web` are only reached through commands and links. */
-const REQUESTABLE: readonly string[] = ['home', 'crew', 'news', 'article', 'ranking', 'profile', 'game', 'forum', 'rules', 'ship'];
+const REQUESTABLE: readonly string[] = ['home', 'crew', 'news', 'article', 'ranking', 'profile', 'settings', 'game', 'forum', 'rules', 'ship'];
 
 export function isWebPage(page: ShellPage): page is WebPage {
     return (WEB_PAGES as readonly string[]).includes(page);

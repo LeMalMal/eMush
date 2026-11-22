@@ -4,8 +4,8 @@ import {
     leadingNumber, numberOrNull, stringOrNull,
 } from './json';
 import {
-    Account, Achievement, CrewCharacter, CrewOffer, GameCounters, NewsArticle, NewsSummary, Page,
-    PlayerStatus, PlayerSummary, RankedShip, ShipHistoryEntry, Statistic,
+    Account, Achievement, ChannelSummary, ChatMessage, CrewCharacter, CrewOffer, GameCounters, NewsArticle, NewsSummary, Page,
+    PlayerStatus, PlayerSummary, RankedShip, ShipAlert, ShipHistoryEntry, Statistic,
 } from './models';
 
 // Every parser accepts `unknown` and returns null / skips items on any unexpected shape:
@@ -44,6 +44,7 @@ export function parsePlayer(data: unknown): PlayerSummary | null {
 
     return {
         id: data.id,
+        shipId: isRecord(daedalus) && isPositiveInteger(daedalus.id) ? daedalus.id : null,
         characterKey: character.key,
         characterName: stringOrNull(character.value) ?? character.key,
         status: data.gameStatus as PlayerStatus,
@@ -201,4 +202,51 @@ export function parseCrewOffer(data: unknown): CrewOffer | null {
 /** The API's error message (`detail`), when it gives one. */
 export function parseApiError(data: unknown): string | null {
     return isRecord(data) ? stringOrNull(data.detail) ?? stringOrNull(data.message) ?? stringOrNull(data.error) : null;
+}
+
+export function parseChannels(data: unknown): ChannelSummary[] {
+    return collectionItems(data).flatMap((row): ChannelSummary[] => {
+        if (!isRecord(row) || !isPositiveInteger(row.id)) {
+            return [];
+        }
+        const unread = numberOrNull(row.numberOfNewMessages);
+
+        return [{
+            id: row.id,
+            scope: stringOrNull(row.scope) ?? 'unknown',
+            name: stringOrNull(row.name) ?? '',
+            unread: unread !== null && unread > 0 ? Math.floor(unread) : 0,
+        }];
+    });
+}
+
+export function parseAlerts(data: unknown): ShipAlert[] {
+    return collectionItems(data).flatMap((row): ShipAlert[] => {
+        if (!isRecord(row) || typeof row.key !== 'string' || row.key === '') {
+            return [];
+        }
+
+        return [{
+            key: row.key,
+            name: toPlainText(stringOrNull(row.name) ?? row.key),
+            description: toPlainText(stringOrNull(row.description) ?? ''),
+        }];
+    });
+}
+
+export function parseMessages(data: unknown): ChatMessage[] {
+    return collectionItems(data).flatMap((row): ChatMessage[] => {
+        if (!isRecord(row) || !isPositiveInteger(row.id)) {
+            return [];
+        }
+        const author = isRecord(row.character) ? stringOrNull(row.character.value) ?? stringOrNull(row.character.key) : null;
+
+        return [{
+            id: row.id,
+            author: author ?? 'NERON',
+            text: toPlainText(stringOrNull(row.message) ?? ''),
+            unread: booleanOr(row.isUnread, false),
+            replies: parseMessages(row.child),
+        }];
+    });
 }

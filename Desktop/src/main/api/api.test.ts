@@ -35,7 +35,7 @@ describe('parseAccount', () => {
 describe('parsePlayer', () => {
     it('reads character, status, calendar, next cycle and triumph', () => {
         expect(parsePlayer(SAMPLE_PLAYER_IN_GAME)).toEqual({
-            id: 812, characterKey: 'jin_su', characterName: 'Jin-Su', status: 'in_game',
+            id: 812, shipId: 77, characterKey: 'jin_su', characterName: 'Jin-Su', status: 'in_game',
             day: 2, cycle: 3, nextCycleAt: new Date('2026-11-21T23:00:00Z'), triumph: 12,
         });
     });

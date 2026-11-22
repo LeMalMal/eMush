@@ -7,6 +7,7 @@ import { renderHome } from './pages/home';
 import { renderArticle, renderNews } from './pages/news';
 import { renderProfile } from './pages/profile';
 import { renderRanking } from './pages/ranking';
+import { renderSettings } from './pages/settings';
 import { loadingState } from './ui';
 
 // The shell page: navigation bar (always visible) + native pages. Which page to draw is always
@@ -19,7 +20,7 @@ const loginPill = document.getElementById('login-pill') as HTMLButtonElement;
 /** Which navigation entry is lit for each page. */
 const SECTION: Record<ShellPage, string | null> = {
     home: 'home', crew: 'play', game: 'play', news: 'news', article: 'news', forum: 'forum',
-    ranking: 'ranking', ship: 'ranking', profile: 'profile', rules: 'rules', login: null, web: null,
+    ranking: 'ranking', ship: 'ranking', profile: 'profile', rules: 'rules', settings: 'settings', login: null, web: null,
 };
 
 let current: Navigation = { page: 'home' };
@@ -64,6 +65,7 @@ function render(navigation: Navigation): void {
         case 'article': void renderArticle(context, Number(navigation.id)); break;
         case 'ranking': void renderRanking(context); break;
         case 'profile': void renderProfile(context, typeof navigation.id === 'string' ? navigation.id : null); break;
+        case 'settings': void renderSettings(context); break;
         default:
             // Web page: the web view is drawn over this area; this only shows while it loads.
             context.track();

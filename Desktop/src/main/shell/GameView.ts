@@ -2,7 +2,8 @@ import { BrowserWindow, WebContentsView } from 'electron';
 import path from 'node:path';
 import { installNavigationGuards } from '../navigation/installNavigationGuards';
 import { NavigationPolicy } from '../navigation/NavigationPolicy';
-import { fitGameZoom, GAME_MODE_CSS, GAME_ZOOM_STEP, isGamePage } from './gameMode';
+import { SettingsService } from '../background/settings';
+import { fitGameZoom, GAME_MODE_CSS, GAME_ZOOM_STEP, isGamePage, manualGameZoom } from './gameMode';
 import { WebViewPort } from './ShellNavigator';
 
 /** Height of the shell's navigation bar, in CSS pixels (must match --nav-height in shell.css). */
@@ -31,6 +32,8 @@ export type GameViewOptions = {
     staticDir: string;
     serverOrigin: string;
     devTools: boolean;
+    /** Game zoom preferences (automatic fit, player adjustment). */
+    settings: SettingsService;
 };
 
 /**
@@ -43,8 +46,7 @@ export class GameView implements WebViewPort {
     private navigationListener: (url: string) => void = () => undefined;
     /** Key of the game-mode CSS while it is inserted (only on the game page). */
     private gameModeCssKey: string | null = null;
-    /** Player's zoom adjustments: on top of the automatic fit in game mode, plain zoom elsewhere. */
-    private gameZoomOffset = 0;
+    /** Plain zoom of the other web pages (the game page zoom lives in the settings). */
     private pageZoomLevel = 0;
 
     constructor(private readonly window: BrowserWindow, private readonly options: GameViewOptions) {
@@ -93,6 +95,12 @@ export class GameView implements WebViewPort {
             }
         });
         contents.on('zoom-changed', (_event, direction) => this.zoom(direction === 'in' ? 1 : -1));
+
+        options.settings.onChange((next, previous) => {
+            if (next.gameAutoZoom !== previous.gameAutoZoom || next.gameZoomOffset !== previous.gameZoomOffset) {
+                this.applyZoom();
+            }
+        });
 
         for (const event of ['resize', 'maximize', 'unmaximize', 'enter-full-screen', 'leave-full-screen'] as const) {
             window.on(event as 'resize', () => this.layout());
@@ -161,7 +169,9 @@ export class GameView implements WebViewPort {
     /** One zoom step in or out (direction +1 / -1): 25 % steps over the automatic fit on the game page. */
     zoom(direction: number): void {
         if (this.isOnGamePage()) {
-            this.gameZoomOffset = Math.min(2, Math.max(-2, this.gameZoomOffset + Math.sign(direction) * GAME_ZOOM_STEP));
+            const offset = this.options.settings.get().gameZoomOffset;
+            this.options.settings.update({ gameZoomOffset: offset + Math.sign(direction) * GAME_ZOOM_STEP });
+            return;
         } else {
             this.pageZoomLevel = Math.min(MAX_ZOOM_LEVEL, Math.max(MIN_ZOOM_LEVEL, this.pageZoomLevel + Math.sign(direction) * 0.5));
         }
@@ -169,8 +179,8 @@ export class GameView implements WebViewPort {
     }
 
     resetZoom(): void {
-        this.gameZoomOffset = 0;
         this.pageZoomLevel = 0;
+        this.options.settings.update({ gameZoomOffset: 0 });
         this.applyZoom();
     }
 
@@ -190,7 +200,8 @@ export class GameView implements WebViewPort {
     private applyZoom(): void {
         if (this.isOnGamePage()) {
             const { width, height } = this.view.getBounds();
-            this.webContents.setZoomFactor(fitGameZoom({ width, height }, this.gameZoomOffset));
+            const { gameAutoZoom, gameZoomOffset } = this.options.settings.get();
+            this.webContents.setZoomFactor(gameAutoZoom ? fitGameZoom({ width, height }, gameZoomOffset) : manualGameZoom(gameZoomOffset));
         } else {
             this.webContents.setZoomLevel(this.pageZoomLevel);
         }
