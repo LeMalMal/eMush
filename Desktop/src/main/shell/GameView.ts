@@ -3,7 +3,7 @@ import path from 'node:path';
 import { installNavigationGuards } from '../navigation/installNavigationGuards';
 import { NavigationPolicy } from '../navigation/NavigationPolicy';
 import { SettingsService } from '../background/settings';
-import { fitGameZoom, GAME_MODE_CSS, GAME_ZOOM_STEP, isGamePage, manualGameZoom } from './gameMode';
+import { fitGameZoom, GAME_ZOOM_STEP, gamePageCss, isGamePage, manualGameZoom } from './gameMode';
 import { ChatRefreshResult, REFRESH_GAME_CHAT } from './refreshGameChat';
 import { WebViewPort } from './ShellNavigator';
 
@@ -47,6 +47,8 @@ export class GameView implements WebViewPort {
     private navigationListener: (url: string) => void = () => undefined;
     /** Key of the game-mode CSS while it is inserted (only on the game page). */
     private gameModeCssKey: string | null = null;
+    /** Page mode updates run one after the other, so the CSS is never inserted twice. */
+    private pageModeQueue: Promise<void> = Promise.resolve();
     /** Plain zoom of the other web pages (the game page zoom lives in the settings). */
     private pageZoomLevel = 0;
 
@@ -100,6 +102,9 @@ export class GameView implements WebViewPort {
         options.settings.onChange((next, previous) => {
             if (next.gameAutoZoom !== previous.gameAutoZoom || next.gameZoomOffset !== previous.gameZoomOffset) {
                 this.applyZoom();
+            }
+            if (next.darkChat !== previous.darkChat || next.largeChat !== previous.largeChat) {
+                void this.applyPageMode(true);
             }
         });
 
@@ -201,15 +206,22 @@ export class GameView implements WebViewPort {
         this.applyZoom();
     }
 
-    /** Game mode on the game page (bigger, no footer), normal display elsewhere. */
-    private async applyPageMode(): Promise<void> {
+    /** Game mode on the game page (bigger, no footer, chosen chat style), normal display elsewhere. */
+    private applyPageMode(stylesChanged = false): Promise<void> {
+        this.pageModeQueue = this.pageModeQueue.then(() => this.updatePageMode(stylesChanged));
+
+        return this.pageModeQueue;
+    }
+
+    private async updatePageMode(stylesChanged: boolean): Promise<void> {
         const onGame = this.isOnGamePage();
-        if (onGame && this.gameModeCssKey === null) {
-            this.gameModeCssKey = await this.webContents.insertCSS(GAME_MODE_CSS).catch(() => null);
-        } else if (!onGame && this.gameModeCssKey !== null) {
+        if (this.gameModeCssKey !== null && (!onGame || stylesChanged)) {
             const key = this.gameModeCssKey;
             this.gameModeCssKey = null;
             await this.webContents.removeInsertedCSS(key).catch(() => undefined);
+        }
+        if (onGame && this.gameModeCssKey === null) {
+            this.gameModeCssKey = await this.webContents.insertCSS(gamePageCss(this.options.settings.get())).catch(() => null);
         }
         this.applyZoom();
     }

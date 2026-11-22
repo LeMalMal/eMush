@@ -127,6 +127,7 @@ describe('settings', () => {
     it('falls back to defaults for missing or invalid values', () => {
         expect(parseSettings({ messages: false, closeToTray: 'yes' })).toEqual({ ...DEFAULT_SETTINGS, messages: false });
         expect(parseSettings(null)).toEqual(DEFAULT_SETTINGS);
+        expect(parseSettings({ darkChat: false, largeChat: 'no' })).toEqual({ ...DEFAULT_SETTINGS, darkChat: false });
     });
 
     it('persists to a JSON file', () => {

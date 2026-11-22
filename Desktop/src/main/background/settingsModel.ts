@@ -17,6 +17,10 @@ export type AppSettings = {
     startMinimized: boolean;
     /** Zoom the game page to fill the window. */
     gameAutoZoom: boolean;
+    /** The game's chat in the client's dark style instead of the web client's pale cyan. */
+    darkChat: boolean;
+    /** The game's chat stretched to the full height of the game, and wider on wide windows. */
+    largeChat: boolean;
     /** Player's adjustment over the automatic zoom, in 25 % steps (-2 to +2). */
     gameZoomOffset: number;
     /** The one-time explanation shown the first time the window goes to the tray. */
@@ -36,11 +40,13 @@ export const DEFAULT_SETTINGS: AppSettings = {
     launchAtStartup: false,
     startMinimized: true,
     gameAutoZoom: true,
+    darkChat: true,
+    largeChat: true,
     gameZoomOffset: 0,
     trayHintShown: false,
 };
 
-const BOOLEAN_KEYS = ['newCycles', 'newDays', 'messages', 'alerts', 'closeToTray', 'minimizeToTray', 'launchAtStartup', 'startMinimized', 'gameAutoZoom', 'trayHintShown'] as const;
+const BOOLEAN_KEYS = ['newCycles', 'newDays', 'messages', 'alerts', 'closeToTray', 'minimizeToTray', 'launchAtStartup', 'startMinimized', 'gameAutoZoom', 'darkChat', 'largeChat', 'trayHintShown'] as const;
 const ZOOM_OFFSET_LIMIT = 2;
 
 /** Reads settings from untrusted JSON (file or shell page). Unknown or invalid values keep their default. */

@@ -64,6 +64,8 @@ function settingsPage(initial: SettingsView, context: PageContext): HTMLElement 
                 h('section', { class: 'frame pad' },
                     sectionTitle('Affichage du jeu'),
                     toggle('gameAutoZoom', 'Agrandir le jeu automatiquement', 'Le jeu remplit la fenêtre par paliers de 25 %, pixel art net.'),
+                    toggle('darkChat', 'Chat sombre', 'Le chat du jeu aux couleurs du client, plus lisible : messages, actions, gains et logs secrets bien distincts.'),
+                    toggle('largeChat', 'Chat agrandi', 'Le chat occupe toute la hauteur du jeu, et la largeur libre sur un écran large.'),
                     h('div', { class: 'zoom-row' },
                         h('span', { class: 'setting-text' }, h('b', {}, 'Ajustement du zoom'), h('span', {}, 'Aussi avec Ctrl + / Ctrl − dans le jeu, Ctrl + 0 pour revenir.')),
                         h('div', { class: 'stepper' },

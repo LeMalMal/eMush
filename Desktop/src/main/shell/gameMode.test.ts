@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { fitGameZoom, isGamePage } from './gameMode';
+import { DARK_CHAT_CSS, LARGE_CHAT_CSS } from './chatTheme';
+import { fitGameZoom, GAME_MODE_CSS, gamePageCss, isGamePage } from './gameMode';
 
 const origin = 'https://emush.eternaltwin.org';
 
@@ -30,5 +31,19 @@ describe('isGamePage', () => {
         expect(isGamePage('https://emush.eternaltwin.org/the-end/3', origin)).toBe(false);
         expect(isGamePage('https://evil.example/game', origin)).toBe(false);
         expect(isGamePage('not a url', origin)).toBe(false);
+    });
+});
+
+describe('gamePageCss', () => {
+    it('adds the chat styles the player chose to the game mode', () => {
+        expect(gamePageCss({ darkChat: true, largeChat: true })).toBe([GAME_MODE_CSS, DARK_CHAT_CSS, LARGE_CHAT_CSS].join('\n'));
+        expect(gamePageCss({ darkChat: true, largeChat: false })).toBe([GAME_MODE_CSS, DARK_CHAT_CSS].join('\n'));
+        expect(gamePageCss({ darkChat: false, largeChat: false })).toBe(GAME_MODE_CSS);
+    });
+
+    it('only restyles the chat panel, so the rest of the game keeps its look', () => {
+        const selectors = DARK_CHAT_CSS.split('}').map((rule) => rule.split('{')[0].trim()).filter((selector) => selector !== '');
+
+        expect(selectors.every((selector) => selector.split(',').every((part) => part.trim().startsWith('.comms-panel')))).toBe(true);
     });
 });

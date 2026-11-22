@@ -1,3 +1,5 @@
+import { DARK_CHAT_CSS, LARGE_CHAT_CSS } from './chatTheme';
+
 /**
  * "Game mode": the web game page (`/game`) has a fixed layout of about 1080 × 600 px. On a big
  * window the client zooms it to fill the space, in 25 % steps, and hides the site footer.
@@ -16,6 +18,11 @@ export const GAME_MODE_CSS = [
     '.main-container > div > div > div > .box-container { margin-top: 8px !important; margin-bottom: 8px !important; }',
     'canvas, .char-card img, .inventory img { image-rendering: pixelated; }',
 ].join('\n');
+
+/** Game mode CSS plus the chat styles the player chose. */
+export function gamePageCss(chat: { darkChat: boolean; largeChat: boolean }): string {
+    return [GAME_MODE_CSS, chat.darkChat ? DARK_CHAT_CSS : '', chat.largeChat ? LARGE_CHAT_CSS : ''].filter((css) => css !== '').join('\n');
+}
 
 export function isGamePage(rawUrl: string, serverOrigin: string): boolean {
     try {
