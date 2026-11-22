@@ -1,11 +1,17 @@
-import type { AppSettings } from '../../main/background/settingsModel';
+import type { AppSettings, GameLanguage, GameLanguageSetting } from '../../main/background/settingsModel';
 import type { SettingsView } from '../../main/pages/view';
 import { bridge } from '../bridge';
 import { h } from '../dom';
 import { PageContext, showLoaded } from '../page';
-import { pageHead, sectionTitle } from '../ui';
+import { pageHead, sectionTitle, segmented } from '../ui';
 
 type BooleanKey = { [K in keyof AppSettings]: AppSettings[K] extends boolean ? K : never }[keyof AppSettings];
+
+const LANGUAGE_NAMES: Record<GameLanguage, string> = { fr: 'Français', en: 'English', es: 'Español' };
+const LANGUAGE_CHOICES: { value: GameLanguageSetting; label: string }[] = [
+    { value: 'auto', label: 'Auto' },
+    ...(['fr', 'en', 'es'] as const).map((language) => ({ value: language, label: LANGUAGE_NAMES[language] })),
+];
 
 export function renderSettings(context: PageContext): Promise<void> {
     return showLoaded(context, () => bridge.load('settings'), (view) => settingsPage(view, context));
@@ -16,7 +22,7 @@ function settingsPage(initial: SettingsView, context: PageContext): HTMLElement 
     const container = h('div', { class: 'container' });
 
     const save = async (change: Partial<AppSettings>): Promise<void> => {
-        const next = await bridge.updateSettings(change as Record<string, boolean | number>);
+        const next = await bridge.updateSettings(change as Record<string, boolean | number | string>);
         if (next !== null && context.root.contains(container)) {
             view = next;
             draw();
@@ -63,6 +69,11 @@ function settingsPage(initial: SettingsView, context: PageContext): HTMLElement 
             h('div', { class: 'two-cols' },
                 h('section', { class: 'frame pad' },
                     sectionTitle('Affichage du jeu'),
+                    h('div', { class: 'zoom-row' },
+                        h('span', { class: 'setting-text' },
+                            h('b', {}, 'Langue du jeu'),
+                            h('span', {}, `Menus, boutons et chat du jeu. Auto : la langue de Windows (${LANGUAGE_NAMES[client.systemGameLanguage]}).`)),
+                        segmented(LANGUAGE_CHOICES, settings.gameLanguage, (gameLanguage) => void save({ gameLanguage }), 'Langue du jeu')),
                     toggle('gameAutoZoom', 'Agrandir le jeu automatiquement', 'Le jeu remplit la fenêtre par paliers de 25 %, pixel art net.'),
                     toggle('darkChat', 'Chat sombre', 'Le chat du jeu aux couleurs du client, plus lisible : messages, actions, gains et logs secrets bien distincts.'),
                     toggle('largeChat', 'Chat agrandi', 'Le chat occupe toute la hauteur du jeu, et la largeur libre sur un écran large.'),

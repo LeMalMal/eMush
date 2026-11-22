@@ -23,7 +23,7 @@ export type ShellBridge = {
     load<K extends keyof PageViews>(page: K, params?: unknown): Promise<Loaded<PageViews[K]>>;
     join(request: { shipId: number; characterKey: string }): Promise<JoinResult>;
     endAdventure(request: { playerId: number; message: string; likedPlayers: number[] }): Promise<JoinResult>;
-    updateSettings(change: Record<string, boolean | number>): Promise<SettingsView | null>;
+    updateSettings(change: Record<string, boolean | number | string>): Promise<SettingsView | null>;
     navigate(navigation: Navigation): void;
     command(command: ShellCommand): void;
     openLink(url: string): void;

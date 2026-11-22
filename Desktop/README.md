@@ -16,6 +16,8 @@ is modified.
   executable only needs an update when the shell itself changes.
 - **One navigation.** The web client's own top bar and menu are hidden in the window: the player
   only ever sees the shell's navigation, and can always go back home (tab, logo, or Ctrl+H).
+  As the web client's language flags are in that bar, the client sets the game's language itself
+  (Windows language by default, or the player's choice in the settings; `src/main/shell/gameLanguage.ts`).
 
 ## Pages
 
@@ -63,8 +65,11 @@ The shell reuses the game's own design language (`App/src/assets/scss`), not a g
   shown while the window is in front of the player. Clicking a notification opens the game.
 - **Live chat**: the web game has no live updates, so the client reloads its chat (the game's own
   `communication/loadAlivePlayerChannels` action) when the watch finds new messages and when the player
-  comes back to the window, never while a message is being written (`src/main/shell/refreshGameChat.ts`).
-  On the game page, the chat is checked every 30 seconds.
+  comes back to the window (`src/main/shell/refreshGameChat.ts`). On the game page, the chat is checked
+  every 30 seconds. The reload waits, and is retried every few seconds, while it would get in the way: a
+  message being typed, a reply box or the formatting dialog open, another field focused, or older messages
+  being read (chat scrolled down). Drafts never block it: the game keys them by channel object, which a
+  reload renumbers, so the client carries every channel's draft over to the reloaded channels.
 - **Restyled chat** (`src/main/shell/chatTheme.ts`, CSS injected on the game page only): a dark chat in the client's
   colours where each kind of line stands out (players' bubbles, NERON, triumph gains and private logs, revealed and
   secret logs, timestamps), and a large chat that fills the full height of the game and takes the free width of wide
@@ -76,7 +81,8 @@ The shell reuses the game's own design language (`App/src/assets/scss`), not a g
   to open the game (or to write the epitaph once the character is dead). It closes when the player clicks elsewhere, unless pinned: then it stays on top, can be
   moved, and only its × closes it.
 - **Settings page** (native): notifications, background behaviour, launch with Windows and start in
-  the background (installed app only), automatic game zoom and its adjustment, dark and large chat, licences and source code.
+  the background (installed app only), game language, automatic game zoom and its adjustment, dark and large chat, licences and
+  source code.
   Settings live in `%APPDATA%/eMush/settings.json` (`SettingsService` validates every change).
 
 ## Other desktop features

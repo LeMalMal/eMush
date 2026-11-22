@@ -6,6 +6,7 @@ import { InvalidConfigError, loadAppConfig } from './config/AppConfig';
 import { buildApplicationMenu } from './menu/buildApplicationMenu';
 import { NavigationPolicy } from './navigation/NavigationPolicy';
 import { PermissionPolicy } from './navigation/PermissionPolicy';
+import { resolveGameLanguage } from './shell/gameLanguage';
 import { GameView } from './shell/GameView';
 import { installShell } from './shell/installShell';
 import { connectToSteam } from './steam/connectToSteam';
@@ -88,6 +89,7 @@ function start(): void {
             }
         });
         const startedWithWindows = process.argv.includes(STARTED_WITH_WINDOWS_FLAG);
+        const systemLanguages = systemLanguagesOf(app);
 
         const window = createMainWindow({
             windowStateStore: new JsonFileWindowStateStore(path.join(app.getPath('userData'), 'window-state.json')),
@@ -108,9 +110,15 @@ function start(): void {
             serverOrigin: config.serverUrl.origin,
             devTools: config.devTools,
             settings,
+            systemLanguages,
         });
         const api = new EmushApi(config.serverUrl, sessionHttp(session.defaultSession));
-        const client = { version: app.getVersion(), canLaunchAtStartup: app.isPackaged, sourceCodeUrl: SOURCE_CODE_URL };
+        const client = {
+            version: app.getVersion(),
+            canLaunchAtStartup: app.isPackaged,
+            sourceCodeUrl: SOURCE_CODE_URL,
+            systemGameLanguage: resolveGameLanguage('auto', systemLanguages),
+        };
         let background: Background | null = null;
         const shell = installShell({
             window,
@@ -172,6 +180,12 @@ function readConfigOrExit() {
 
         return null;
     }
+}
+
+/** Languages of Windows, most preferred first (`fr-FR`, `en-US`...). */
+function systemLanguagesOf(electronApp: Electron.App): string[] {
+    const preferred = electronApp.getPreferredSystemLanguages();
+    return preferred.length > 0 ? preferred : [electronApp.getLocale()];
 }
 
 function resolveIconPath(): string {

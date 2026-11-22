@@ -128,6 +128,8 @@ describe('settings', () => {
         expect(parseSettings({ messages: false, closeToTray: 'yes' })).toEqual({ ...DEFAULT_SETTINGS, messages: false });
         expect(parseSettings(null)).toEqual(DEFAULT_SETTINGS);
         expect(parseSettings({ darkChat: false, largeChat: 'no' })).toEqual({ ...DEFAULT_SETTINGS, darkChat: false });
+        expect(parseSettings({ gameLanguage: 'es' }).gameLanguage).toBe('es');
+        expect(parseSettings({ gameLanguage: 'de' }).gameLanguage).toBe('auto');
     });
 
     it('persists to a JSON file', () => {

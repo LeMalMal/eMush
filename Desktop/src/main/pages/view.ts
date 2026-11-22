@@ -1,6 +1,6 @@
 import { Inline, RichBlock } from '../api/gameText';
 import { Language, RankingSort } from '../api/models';
-import { AppSettings } from '../background/settingsModel';
+import { AppSettings, GameLanguage } from '../background/settingsModel';
 
 // View models sent to the shell page over IPC: plain, JSON-serializable, already formatted for display.
 
@@ -126,6 +126,8 @@ export type ClientInfo = {
     /** Launching with Windows needs the installed app (a dev build would register Electron itself). */
     canLaunchAtStartup: boolean;
     sourceCodeUrl: string;
+    /** Language of the game when its setting is "automatic" (from the languages of Windows). */
+    systemGameLanguage: GameLanguage;
 };
 
 export type SettingsView = { settings: AppSettings; client: ClientInfo };

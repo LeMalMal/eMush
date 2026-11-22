@@ -1,5 +1,11 @@
 // Settings model, without Node or Electron dependencies (shared with the shell page).
 
+/** Languages of the web game's interface (App/src/i18n), in the order the settings page shows them. */
+export const GAME_LANGUAGES = ['fr', 'en', 'es'] as const;
+export type GameLanguage = typeof GAME_LANGUAGES[number];
+/** `auto` follows the language of Windows. */
+export type GameLanguageSetting = GameLanguage | 'auto';
+
 /** Player preferences: notifications, background behaviour, game display. */
 export type AppSettings = {
     newCycles: boolean;
@@ -17,6 +23,8 @@ export type AppSettings = {
     startMinimized: boolean;
     /** Zoom the game page to fill the window. */
     gameAutoZoom: boolean;
+    /** Language of the web game's menus and buttons (the web client's own selector is in its hidden top bar). */
+    gameLanguage: GameLanguageSetting;
     /** The game's chat in the client's dark style instead of the web client's pale cyan. */
     darkChat: boolean;
     /** The game's chat stretched to the full height of the game, and wider on wide windows. */
@@ -40,6 +48,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
     launchAtStartup: false,
     startMinimized: true,
     gameAutoZoom: true,
+    gameLanguage: 'auto',
     darkChat: true,
     largeChat: true,
     gameZoomOffset: 0,
@@ -58,10 +67,17 @@ export function parseSettings(value: unknown, base: AppSettings = DEFAULT_SETTIN
             settings[key] = input[key] as boolean;
         }
     }
+    if (isGameLanguageSetting(input.gameLanguage)) {
+        settings.gameLanguage = input.gameLanguage;
+    }
     if (typeof input.gameZoomOffset === 'number' && Number.isFinite(input.gameZoomOffset)) {
         const steps = Math.round(input.gameZoomOffset * 4) / 4;
         settings.gameZoomOffset = Math.min(ZOOM_OFFSET_LIMIT, Math.max(-ZOOM_OFFSET_LIMIT, steps));
     }
 
     return settings;
+}
+
+function isGameLanguageSetting(value: unknown): value is GameLanguageSetting {
+    return value === 'auto' || (GAME_LANGUAGES as readonly unknown[]).includes(value);
 }

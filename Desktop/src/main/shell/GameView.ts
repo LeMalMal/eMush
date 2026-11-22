@@ -4,7 +4,8 @@ import { installNavigationGuards } from '../navigation/installNavigationGuards';
 import { NavigationPolicy } from '../navigation/NavigationPolicy';
 import { SettingsService } from '../background/settings';
 import { fitGameZoom, GAME_ZOOM_STEP, gamePageCss, isGamePage, manualGameZoom } from './gameMode';
-import { ChatRefreshResult, REFRESH_GAME_CHAT } from './refreshGameChat';
+import { applyGameLanguageScript, GameLanguageResult, resolveGameLanguage } from './gameLanguage';
+import { ChatRefreshResult, KeyboardActivity, RefreshGameChat, refreshGameChatScript } from './refreshGameChat';
 import { WebViewPort } from './ShellNavigator';
 
 /** Height of the shell's navigation bar, in CSS pixels (must match --nav-height in shell.css). */
@@ -33,8 +34,10 @@ export type GameViewOptions = {
     staticDir: string;
     serverOrigin: string;
     devTools: boolean;
-    /** Game zoom preferences (automatic fit, player adjustment). */
+    /** Game display preferences (zoom, chat styles, language of the game). */
     settings: SettingsService;
+    /** Languages of Windows, most preferred first (for the "automatic" game language). */
+    systemLanguages: readonly string[];
 };
 
 /**
@@ -51,6 +54,11 @@ export class GameView implements WebViewPort {
     private pageModeQueue: Promise<void> = Promise.resolve();
     /** Plain zoom of the other web pages (the game page zoom lives in the settings). */
     private pageZoomLevel = 0;
+    /** Keys pressed in the web page: a chat refresh waits while the player is typing. */
+    private readonly keyboard = new KeyboardActivity();
+    private readonly chatRefresh: RefreshGameChat;
+    /** Last chat refresh result written to the log (retries repeat it every few seconds). */
+    private lastChatTrace = '';
 
     constructor(private readonly window: BrowserWindow, private readonly options: GameViewOptions) {
         this.view = new WebContentsView({
@@ -68,8 +76,22 @@ export class GameView implements WebViewPort {
         this.view.setVisible(false);
         window.contentView.addChildView(this.view);
 
+        this.chatRefresh = new RefreshGameChat({
+            run: (options) => this.runChatRefresh(options),
+            isTyping: () => this.window.isFocused() && this.keyboard.isTyping(Date.now()),
+            schedule: (callback, delayMs) => {
+                const timer = setTimeout(callback, delayMs);
+                return () => clearTimeout(timer);
+            },
+        });
+
         const contents = this.view.webContents;
         installNavigationGuards(contents, options.navigationPolicy);
+        contents.on('before-input-event', (_event, input) => {
+            if (input.type === 'keyDown') {
+                this.keyboard.record(Date.now());
+            }
+        });
         contents.on('did-fail-load', (_event, errorCode, errorDescription, validatedUrl, isMainFrame) => {
             const ABORTED = -3; // Replaced by another navigation: not an error.
             if (!isMainFrame || errorCode === ABORTED) {
@@ -83,6 +105,7 @@ export class GameView implements WebViewPort {
             this.gameModeCssKey = null; // A new document: previously inserted CSS is gone.
             if (this.isOnGameServer()) {
                 contents.insertCSS(HIDE_WEB_NAVIGATION).catch(() => undefined);
+                void this.applyGameLanguage();
             }
             void this.applyPageMode();
         });
@@ -105,6 +128,9 @@ export class GameView implements WebViewPort {
             }
             if (next.darkChat !== previous.darkChat || next.largeChat !== previous.largeChat) {
                 void this.applyPageMode(true);
+            }
+            if (next.gameLanguage !== previous.gameLanguage && this.isOnGameServer()) {
+                void this.applyGameLanguage();
             }
         });
 
@@ -168,15 +194,31 @@ export class GameView implements WebViewPort {
         return this.visible && this.isOnGamePage();
     }
 
-    /** Asks the web game to reload its chat (see refreshGameChat.ts). Does nothing off the game page. */
-    async refreshChat(): Promise<ChatRefreshResult | 'off-game'> {
+    /** Asks the web game to reload its chat, now or once it no longer gets in the player's way (see refreshGameChat.ts). */
+    refreshChat(): Promise<ChatRefreshResult | 'off-game'> {
+        return this.chatRefresh.execute();
+    }
+
+    private async runChatRefresh(options: { typing: boolean }): Promise<ChatRefreshResult | 'off-game'> {
         if (!this.isOnGamePage() || this.webContents.isLoading()) {
             return 'off-game';
         }
-        const result = await this.webContents.executeJavaScript(REFRESH_GAME_CHAT).catch(() => 'unavailable') as ChatRefreshResult;
-        this.trace(`chat ${result}`, this.webContents.getURL());
+        const result = await this.webContents.executeJavaScript(refreshGameChatScript(options)).catch(() => 'unavailable') as ChatRefreshResult;
+        if (result !== this.lastChatTrace) {
+            this.lastChatTrace = result;
+            this.trace(`chat ${result}`, this.webContents.getURL());
+        }
 
         return result;
+    }
+
+    /** The game's interface in the language chosen in the settings (its own selector is hidden). */
+    private async applyGameLanguage(): Promise<void> {
+        const language = resolveGameLanguage(this.options.settings.get().gameLanguage, this.options.systemLanguages);
+        const result = await this.webContents.executeJavaScript(applyGameLanguageScript(language)).catch(() => null) as GameLanguageResult | null;
+        if (result !== 'unchanged') {
+            this.trace(`language ${language} ${result ?? 'failed'}`, this.webContents.getURL());
+        }
     }
 
     /** Forgets the page (after logout), so no state of the previous session stays visible. */
