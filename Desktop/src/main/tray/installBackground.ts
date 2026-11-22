@@ -49,14 +49,21 @@ export function installBackground({ window, api, navigator, settings, icons, min
         openWindow();
         navigator.go({ page: 'game' });
     };
+    const openDeath = (): void => {
+        openWindow();
+        navigator.go({ page: 'death' });
+    };
     const quit = (): void => {
         quitting = true;
         app.quit();
     };
 
     const notifier = new ElectronNotifier(icons.notification, () => {
-        if (watcher.lastSnapshot?.state === 'alive') {
+        const state = watcher.lastSnapshot?.state;
+        if (state === 'alive') {
             resumeGame();
+        } else if (state === 'dead') {
+            openDeath();
         } else {
             openWindow();
         }
@@ -74,6 +81,7 @@ export function installBackground({ window, api, navigator, settings, icons, min
         loadView: new LoadMiniPanel(api),
         openGame: resumeGame,
         openWindow,
+        openDeath,
     });
 
     const tray = new TrayController(window, settings, { tray: icons.tray, badge: icons.badge }, {

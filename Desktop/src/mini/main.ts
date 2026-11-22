@@ -7,7 +7,7 @@ import { headUrl, icon, loadingState } from '../shell/ui';
 
 type MiniBridge = {
     load(): Promise<Loaded<MiniView>>;
-    command(command: 'open-game' | 'open-window' | 'pin' | 'unpin' | 'close'): void;
+    command(command: 'open-game' | 'open-window' | 'open-death' | 'pin' | 'unpin' | 'close'): void;
     onRefresh(listener: () => void): void;
     onPinned(listener: (pinned: boolean) => void): void;
 };
@@ -41,7 +41,9 @@ function render(view: MiniView): void {
         root.replaceChildren(
             header('eMush', null, null),
             h('div', { class: 'state' }, h('h2', {}, view.title), h('p', {}, view.text)),
-            h('footer', { class: 'mini-foot' }, h('button', { class: 'btn red block', type: 'button', onclick: () => bridge.command('open-window') }, 'Ouvrir eMush')));
+            h('footer', { class: 'mini-foot' }, view.status === 'dead'
+                ? h('button', { class: 'btn red block', type: 'button', onclick: () => bridge.command('open-death') }, 'Écrire ton épitaphe')
+                : h('button', { class: 'btn red block', type: 'button', onclick: () => bridge.command('open-window') }, 'Ouvrir eMush')));
         return;
     }
 
@@ -50,7 +52,7 @@ function render(view: MiniView): void {
 
     const messages = view.messages.length > 0
         ? h('ol', { class: 'mini-chat' }, ...view.messages.map((message) => h('li', { class: [message.unread ? 'unread' : '', message.reply ? 'reply' : ''].join(' ').trim() || undefined },
-            message.authorKey ? h('img', { class: 'mini-avatar', src: headUrl(message.authorKey), alt: '' }) : h('span', { class: 'mini-avatar' }),
+            message.authorKey ? avatar(message.authorKey) : h('span', { class: 'mini-avatar' }),
             h('div', {},
                 h('span', { class: 'mini-meta' }, h('b', {}, message.author), message.date ? h('span', {}, message.date) : null),
                 h('p', {}, message.text)))))
@@ -61,6 +63,17 @@ function render(view: MiniView): void {
         h('section', { class: 'mini-cycle slot' }, h('span', { class: 'label' }, 'Prochain cycle'), countdown),
         h('section', { class: 'mini-points' }, ...view.points.map((point) => h('div', { class: 'mini-point slot', title: point.label },
             icon(point.icon), h('b', {}, point.max !== null ? `${point.value}/${point.max}` : String(point.value)), h('span', {}, point.label)))),
+        view.ship.length > 0
+            ? h('section', { class: 'mini-ship', 'aria-label': 'Daedalus' }, ...view.ship.map((gauge) => h('span', {
+                class: gauge.low ? 'mini-gauge low' : 'mini-gauge',
+                title: gauge.low ? `${gauge.label} : niveau bas` : gauge.label,
+            }, icon(gauge.icon), h('b', {}, gauge.value))))
+            : null,
+        view.titles.length > 0 || view.diseases.length > 0
+            ? h('section', { class: 'mini-alerts' },
+                ...view.titles.map((title) => h('span', { class: 'tag ok' }, title)),
+                ...view.diseases.map((disease) => h('span', { class: 'tag rare' }, icon('disease'), disease)))
+            : null,
         view.alerts.length > 0
             ? h('section', { class: 'mini-alerts' }, ...view.alerts.map((alert) => h('span', { class: 'tag alert', title: alert.description }, alert.name)))
             : null,
@@ -71,6 +84,16 @@ function render(view: MiniView): void {
         h('footer', { class: 'mini-foot' }, h('button', { class: 'btn red block', type: 'button', onclick: () => bridge.command('open-game') }, 'Ouvrir le jeu')),
     ];
     root.replaceChildren(...sections.filter((section): section is Node => section !== null));
+}
+
+/** The author's pixel head; an author the client has no sprite for gets an empty square, never a broken image. */
+function avatar(characterKey: string): HTMLImageElement {
+    const image = h('img', { class: 'mini-avatar', src: headUrl(characterKey), alt: '' });
+    image.addEventListener('error', () => {
+        image.style.visibility = 'hidden';
+    }, { once: true });
+
+    return image;
 }
 
 function formatRemaining(): string {

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { EmushApi } from '../api/EmushApi';
 import { FakeGameServer, SAMPLE_ACCOUNT, SAMPLE_PLAYER_IN_GAME } from '../api/FakeGameServer';
 import { ChatMessage } from '../api/models';
-import { flattenMessages, LoadMiniPanel } from './mini';
+import { flattenMessages, LoadMiniPanel, shipGauges } from './mini';
 
 const server = new URL('https://emush.eternaltwin.org');
 
@@ -15,6 +15,14 @@ describe('flattenMessages', () => {
         const rows = flattenMessages([message(10, 'Hua', false, [message(11, 'Ian'), message(12, 'Chun', true)]), message(5, 'Andie')], 3);
 
         expect(rows.map((row) => [row.id, row.reply, row.unread])).toEqual([[10, false, false], [12, true, true], [11, true, false]]);
+    });
+});
+
+describe('shipGauges', () => {
+    it('flags the gauges that are running low, and skips the ones the API did not send', () => {
+        const gauges = shipGauges({ oxygen: 6, fuel: null, hull: 25, shield: 30, crewAlive: null });
+
+        expect(gauges.map((gauge) => [gauge.icon, gauge.low])).toEqual([['oxygen', true], ['hull', true], ['shield', false]]);
     });
 });
 
@@ -40,6 +48,15 @@ describe('LoadMiniPanel', () => {
                 when: 'Jour 2 · Cycle 3',
                 nextCycleAt: '2026-11-21T23:00:00.000Z',
                 points: [{ icon: 'pa', label: 'PA', value: 4, max: 12 }, { icon: 'pm', label: 'PM', value: 10, max: 12 }],
+                ship: [
+                    { icon: 'oxygen', label: 'Oxygène', value: '24', low: false },
+                    { icon: 'fuel', label: 'Fuel', value: '9', low: false },
+                    { icon: 'hull', label: 'Coque', value: '87', low: false },
+                    { icon: 'shield_off', label: 'Bouclier', value: '0', low: false },
+                    { icon: 'crew', label: 'En vie', value: '14', low: false },
+                ],
+                titles: ['Commandant'],
+                diseases: ['Grippe'],
                 alerts: [{ name: 'Incendie', description: 'En Cuisine.' }],
                 channel: { name: 'Discussion', unread: 2 },
                 messages: [{ id: 3, authorKey: 'hua', author: 'Hua', text: 'On explore ?', date: '2 min', unread: true, reply: false }],

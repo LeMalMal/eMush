@@ -30,9 +30,83 @@ export type PlayerSummary = {
     /** Action, movement, health and moral points (null when the API does not send them). */
     points: { actionPoints: Gauge | null; movementPoints: Gauge | null; healthPoints: Gauge | null; moralPoints: Gauge | null };
     room: string | null;
+    isMush: boolean;
+    /** Titles held by the character (Commandant, Responsable NERON...). */
+    titles: string[];
+    /** Active diseases, by name. */
+    diseases: string[];
+    ship: ShipState;
 };
 
 export type Gauge = { value: number; max: number | null };
+
+/** The Daedalus as the crew sees it in the game's banner (null when the API did not send a value). */
+export type ShipState = {
+    oxygen: number | null;
+    fuel: number | null;
+    hull: number | null;
+    shield: number | null;
+    crewAlive: number | null;
+};
+
+/** Why a character's adventure ended. `name` is the long sentence, `shortName` the table label. */
+export type EndCause = { key: string; name: string; shortName: string; description: string };
+
+/** The death page of the signed-in player (`GET player/:id` once the character is dead). */
+export type DeathReport = {
+    playerId: number;
+    characterKey: string;
+    characterName: string;
+    isMush: boolean;
+    triumph: number | null;
+    endCause: EndCause;
+    /** Game markup, one line each ("3 x Objectif ( +3 :triumph: )"). */
+    triumphGains: string[];
+    highlights: string[];
+    crew: DeathReportCrewmate[];
+};
+
+export type DeathReportCrewmate = {
+    playerId: number;
+    characterKey: string;
+    characterName: string;
+    deathDay: number | null;
+    deathCycle: number | null;
+    endCause: EndCause | null;
+    likes: number;
+};
+
+/** A finished Daedalus (`GET closed_daedaluses/:id`). */
+export type ClosedShip = {
+    id: number;
+    endCause: string;
+    daysSurvived: number | null;
+    cyclesSurvived: number | null;
+    humanTriumph: number | null;
+    mushTriumph: number | null;
+    isCheater: boolean;
+    statistics: { title: string; lines: { name: string; value: number }[] };
+    titleHolders: { title: string; characterKeys: string[] }[];
+    funFacts: { title: string; description: string; characterKey: string }[];
+};
+
+/** A crew member of a finished Daedalus (`GET closed_daedaluses/:id/players`). */
+export type ClosedCrewMember = {
+    id: number;
+    characterKey: string;
+    userId: string | null;
+    username: string;
+    /** The epitaph (null when there is none, or when it was hidden by a moderator). */
+    message: string | null;
+    endCause: string;
+    dayDeath: number | null;
+    cycleDeath: number | null;
+    likes: number;
+    isMush: boolean;
+    score: number | null;
+    highlights: string[];
+    triumphGains: string[];
+};
 
 export type NewsSummary = {
     id: number;

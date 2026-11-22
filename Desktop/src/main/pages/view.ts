@@ -1,4 +1,4 @@
-import { RichBlock } from '../api/gameText';
+import { Inline, RichBlock } from '../api/gameText';
 import { Language, RankingSort } from '../api/models';
 import { AppSettings } from '../background/settingsModel';
 
@@ -73,6 +73,53 @@ export type CrewCharacterView = {
 };
 export type CrewChoice = { status: 'choose'; language: Language; shipId: number; aboard: number; characters: CrewCharacterView[] };
 export type CrewView = { status: 'signed-out' } | { status: 'rules' } | { status: 'aboard' } | CrewChoice;
+
+/** One line of game text (a highlight, a triumph gain), parsed for DOM rendering. */
+export type RichLine = Inline[];
+
+export type DeathCrewRow = { playerId: number; characterKey: string; name: string; death: string; cause: string; likes: number };
+export type DeathChoice = {
+    status: 'dead';
+    playerId: number;
+    character: { key: string; name: string };
+    isMush: boolean;
+    triumph: string;
+    endCause: { title: string; description: string; good: boolean };
+    highlights: RichLine[];
+    triumphGains: RichLine[];
+    crew: DeathCrewRow[];
+    maxLength: number;
+};
+/** The death page: epitaph, likes for the crew, then the adventure is closed. */
+export type DeathView = { status: 'signed-out' } | { status: 'no-character' } | { status: 'alive' } | DeathChoice;
+
+export type ShipCrewCard = {
+    characterKey: string;
+    name: string;
+    username: string;
+    userId: string | null;
+    score: string;
+    isMush: boolean;
+    endCause: string;
+    good: boolean;
+    death: string | null;
+    likes: number;
+    epitaph: RichLine | null;
+    award: { label: string; image: string };
+    highlights: RichLine[];
+};
+export type ShipEndView = {
+    shipId: number;
+    end: { title: string; image: string };
+    tags: Tag[];
+    isCheater: boolean;
+    headliner: ShipCrewCard | null;
+    mainRoles: ShipCrewCard[];
+    extras: ShipCrewCard[];
+    statistics: { title: string; lines: { name: string; value: string }[] };
+    titles: { title: string; characters: { key: string; name: string }[] }[];
+    funFacts: { title: string; description: string; character: { key: string; name: string } }[];
+};
 
 export type ClientInfo = {
     version: string;

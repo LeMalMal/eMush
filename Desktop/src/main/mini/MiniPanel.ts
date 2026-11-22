@@ -3,7 +3,7 @@ import { LoadMiniPanel } from '../pages/mini';
 
 export const MINI_SIZE = { width: 360, height: 600 };
 const SCREEN_MARGIN = 12;
-const MINI_COMMANDS = ['open-game', 'open-window', 'pin', 'unpin', 'close'] as const;
+const MINI_COMMANDS = ['open-game', 'open-window', 'open-death', 'pin', 'unpin', 'close'] as const;
 type MiniCommand = typeof MINI_COMMANDS[number];
 
 export type MiniPanelDependencies = {
@@ -13,6 +13,8 @@ export type MiniPanelDependencies = {
     loadView: LoadMiniPanel;
     openGame(): void;
     openWindow(): void;
+    /** The death page, where the epitaph is written. */
+    openDeath(): void;
     devTools: boolean;
 };
 
@@ -118,6 +120,10 @@ export class MiniPanel {
             case 'open-window':
                 this.hideUnlessPinned();
                 this.deps.openWindow();
+                break;
+            case 'open-death':
+                this.hideUnlessPinned();
+                this.deps.openDeath();
                 break;
             case 'pin':
             case 'unpin':

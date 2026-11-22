@@ -1,13 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import { EmushApi } from './EmushApi';
 import {
-    ACCOUNT_UUID, FakeGameServer, SAMPLE_ACCOUNT, SAMPLE_ACHIEVEMENTS, SAMPLE_CREW_OFFER, SAMPLE_NEWS, SAMPLE_PLAYER_IN_GAME,
-    SAMPLE_RANKING, SAMPLE_SHIP_HISTORY, SAMPLE_STATISTICS,
+    ACCOUNT_UUID, FakeGameServer, SAMPLE_ACCOUNT, SAMPLE_ACHIEVEMENTS, SAMPLE_CLOSED_CREW, SAMPLE_CLOSED_SHIP, SAMPLE_CREW_OFFER,
+    SAMPLE_DEAD_PLAYER, SAMPLE_NEWS, SAMPLE_PLAYER_IN_GAME, SAMPLE_RANKING, SAMPLE_SHIP_HISTORY, SAMPLE_STATISTICS,
 } from './FakeGameServer';
 import { parseRichText, toExcerpt, toPlainText } from './gameText';
 import { dateOrNull, leadingNumber } from './json';
 import {
-    parseAccount, parseAchievements, parseArticle, parseCrewOffer, parseNewsPage, parsePlayer, parseRanking, parseShipHistory, parseStatistics,
+    parseAccount, parseAchievements, parseArticle, parseClosedCrew, parseClosedShip, parseCrewOffer, parseDeathReport, parseNewsPage, parsePlayer,
+    parseRanking, parseShipHistory, parseStatistics,
 } from './parsers';
 
 const server = new URL('https://emush.eternaltwin.org');
@@ -39,6 +40,10 @@ describe('parsePlayer', () => {
             day: 2, cycle: 3, nextCycleAt: new Date('2026-11-21T23:00:00Z'), triumph: 12,
             points: { actionPoints: { value: 4, max: 12 }, movementPoints: { value: 10, max: 12 }, healthPoints: null, moralPoints: null },
             room: 'Pont',
+            isMush: false,
+            titles: ['Commandant'],
+            diseases: ['Grippe'],
+            ship: { oxygen: 24, fuel: 9, hull: 87, shield: 0, crewAlive: 14 },
         });
     });
 
@@ -50,6 +55,62 @@ describe('parsePlayer', () => {
 
     it('rejects an unknown status', () => {
         expect(parsePlayer({ ...SAMPLE_PLAYER_IN_GAME, gameStatus: 'starting_soon' })).toBeNull();
+    });
+});
+
+describe('parseDeathReport', () => {
+    it('reads the end cause, history and crewmates of a dead character', () => {
+        const report = parseDeathReport(SAMPLE_DEAD_PLAYER);
+
+        expect(report).toMatchObject({
+            playerId: 812, characterKey: 'jin_su', triumph: 47, isMush: false,
+            endCause: { key: 'assassinated', name: 'Assassiné par un équipier', shortName: 'Assassiné' },
+            triumphGains: ['8 x Cycle humain ( +8 :triumph: )', '1 x Recherche ( +3 :triumph: )'],
+            highlights: ['Vous avez réparé la **Porte** du Pont.'],
+        });
+        expect(report?.crew.map((mate) => [mate.playerId, mate.characterKey, mate.deathDay, mate.likes])).toEqual([[813, 'hua', 7, 2], [814, 'chun', null, 0]]);
+    });
+
+    it('is null while the character is alive', () => {
+        expect(parseDeathReport(SAMPLE_PLAYER_IN_GAME)).toBeNull();
+    });
+});
+
+describe('closed ships', () => {
+    it('reads the end, statistics, titles (sent as an object) and fun facts', () => {
+        expect(parseClosedShip(SAMPLE_CLOSED_SHIP)).toEqual({
+            id: 225, endCause: 'sol_return', daysSurvived: 21, cyclesSurvived: 172, humanTriumph: 5626, mushTriumph: 0, isCheater: false,
+            statistics: { title: 'Statistiques', lines: [{ name: 'Hunters abattus', value: 1203 }, { name: 'Explorations', value: 14 }] },
+            titleHolders: [{ title: 'Commandant', characterKeys: ['jin_su'] }, { title: 'Responsable NERON', characterKeys: [] }],
+            funFacts: [{ title: 'Le plus gourmand', description: 'A mangé le plus de rations.', characterKey: 'chun' }],
+        });
+    });
+
+    it('reads the crew, dropping invalid characters and user ids', () => {
+        const crew = parseClosedCrew(SAMPLE_CLOSED_CREW);
+
+        expect(crew.map((member) => [member.characterKey, member.userId, member.score, member.message])).toEqual([
+            ['chun', ACCOUNT_UUID, 120, '**Mission\naccomplie** Quel voyage !'],
+            ['ian', null, 210, null],
+        ]);
+    });
+
+    it('asks the API for a finished ship and its crew', async () => {
+        const fake = new FakeGameServer()
+            .respond('closed_daedaluses/225', 200, SAMPLE_CLOSED_SHIP)
+            .respond('closed_daedaluses/225/players', 200, SAMPLE_CLOSED_CREW);
+        const api = new EmushApi(server, fake);
+
+        expect((await api.closedShip(225))?.endCause).toBe('sol_return');
+        expect(await api.closedShip(226)).toBeNull();
+        expect(await api.closedShipCrew(225)).toHaveLength(2);
+    });
+
+    it('closes an adventure with the same request as the web death page', async () => {
+        const fake = new FakeGameServer().respondToPost('player/812/end', 200);
+
+        expect(await new EmushApi(server, fake).endAdventure(812, 'Adieu', [813])).toEqual({ ok: true });
+        expect(fake.posts).toEqual([{ path: 'player/812/end', body: { message: 'Adieu', likedPlayers: [813] } }]);
     });
 });
 

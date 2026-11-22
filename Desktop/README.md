@@ -25,14 +25,17 @@ is modified.
 | ▶ Jouer | client or web | Leads to the right place: login, rules, **crew selection** (client) or the game (web). |
 | Trouver un équipage | client | Boarding ship per language (FR/EN/ES), who is aboard (x/16), character cards with level, story and skills. Boarding is always confirmed in a dialog. |
 | Actualités | client | Paginated news and full articles, rendered from the game's markup. |
-| Classements | client | Ship ranking with language and sort filters; a row opens the ship's end page (web). |
+| Mort | client | When the character is dead ("Jouer", a death notification or the mini panel lead here): end cause, triumph, highlights and triumph history, crew table with likes, 512-character epitaph. Closing the adventure is confirmed in a dialog and re-checked server-side first. |
+| Classements | client | Ship ranking with language and sort filters; a row opens the ship's end page. |
+| Fin de vaisseau | client | A finished ship: ending artwork, crew ranked by score (headliner, main roles, extras) with Supernova/Nova awards, epitaphs and highlights, statistics, titles and fun facts. Projects, explorations and reports stay on the web page (button). |
 | Profil | client | Own or another player's profile: success points, statistics, achievements, game history (a row opens the ship's end page). Logout. |
 | Forum | web | The eMush section of the Eternaltwin forum, in the window. |
 | Règles | web | The game's rules page (where new players accept them). |
 | Jeu | web | The game itself (`/game`). |
 
-When the web game links to a page the client has redone (news, ranking, a profile), the client shows
-its native page instead (`nativeNavigationFor` in `src/main/shell/routes.ts`).
+When the web game links to a page the client has redone (news, ranking, a profile, a ship's end page),
+the client shows its native page instead (`nativeNavigationFor` in `src/main/shell/routes.ts`), unless
+the player explicitly asked for the web version.
 
 ## Visual style
 
@@ -60,8 +63,9 @@ The shell reuses the game's own design language (`App/src/assets/scss`), not a g
   shown while the window is in front of the player. Clicking a notification opens the game.
 - **Taskbar**: a badge while chat messages are unread, a flash when a cycle, a day or an alert begins.
 - **Mini panel** (click on the notification-area icon, or Ctrl+Shift+M): the character's AP, MP, HP and
-  moral, a live countdown to the next cycle, ship alerts and the latest chat messages, plus a button to
-  open the game. It closes when the player clicks elsewhere, unless pinned: then it stays on top, can be
+  moral, a live countdown to the next cycle, the ship's gauges (oxygen, fuel, hull, plasma shield, crew
+  alive; low levels in red), titles and diseases, ship alerts and the latest chat messages, plus a button
+  to open the game (or to write the epitaph once the character is dead). It closes when the player clicks elsewhere, unless pinned: then it stays on top, can be
   moved, and only its × closes it.
 - **Settings page** (native): notifications, background behaviour, launch with Windows and start in
   the background (installed app only), automatic game zoom and its adjustment, licences and source code.
@@ -184,7 +188,7 @@ These need the eMush team / Eternaltwin, so they are deliberately not done yet:
    or a dedicated API endpoint) that the shell forwards to `SteamGateway.unlockAchievement`.
 4. **Notifications**: Web Push (service worker + VAPID) does not work in Electron. Native
    notifications need a small polling or WebSocket channel.
-5. **More native pages**: death/epitaph, ship end page, then the game's own panels as the API allows.
+5. **More native pages**: projects and explorations of the end page, then the game's own panels as the API allows.
 6. **Code signing** of the Windows executable, auto-update for builds distributed outside Steam,
    and Linux / Steam Deck builds.
 

@@ -1,10 +1,10 @@
 import {
-    Account, Achievement, ChannelSummary, ChatMessage, CrewOffer, GameCounters, Language, NewsArticle, NewsSummary, Page, PlayerSummary,
-    RankedShip, RankingSort, ShipAlert, ShipHistoryEntry, Statistic,
+    Account, Achievement, ChannelSummary, ChatMessage, ClosedCrewMember, ClosedShip, CrewOffer, DeathReport, GameCounters, Language, NewsArticle,
+    NewsSummary, Page, PlayerSummary, RankedShip, RankingSort, ShipAlert, ShipHistoryEntry, Statistic,
 } from './models';
 import {
-    parseAccount, parseAchievements, parseAlerts, parseApiError, parseArticle, parseChannels, parseCounters, parseCrewOffer, parseNewsPage,
-    parseMessages, parsePlayer, parseRanking, parseShipHistory, parseStatistics,
+    parseAccount, parseAchievements, parseAlerts, parseApiError, parseArticle, parseChannels, parseClosedCrew, parseClosedShip, parseCounters,
+    parseCrewOffer, parseDeathReport, parseMessages, parseNewsPage, parsePlayer, parseRanking, parseShipHistory, parseStatistics,
 } from './parsers';
 
 export type HttpResponse = { status: number; json(): Promise<unknown> };
@@ -55,6 +55,31 @@ export class EmushApi {
         const response = await this.get(`player/${playerId}`);
 
         return response.status === 200 ? parsePlayer(await response.json()) : null;
+    }
+
+    /** The death page of a dead character (null while alive, or for someone else's character). */
+    async deathReport(playerId: number): Promise<DeathReport | null> {
+        const response = await this.get(`player/${playerId}`);
+
+        return response.status === 200 ? parseDeathReport(await response.json()) : null;
+    }
+
+    /** Closes the adventure of a dead character: epitaph and "likes", as the web death page sends them. */
+    async endAdventure(playerId: number, message: string, likedPlayers: number[]): Promise<JoinResult> {
+        return this.send(`player/${playerId}/end`, { message, likedPlayers }, 'Le serveur a refusé de clore l\'aventure');
+    }
+
+    /** A finished Daedalus (null when unknown, or still flying). */
+    async closedShip(shipId: number): Promise<ClosedShip | null> {
+        const response = await this.get(`closed_daedaluses/${shipId}`);
+
+        return response.status === 200 ? parseClosedShip(await response.json()) : null;
+    }
+
+    async closedShipCrew(shipId: number): Promise<ClosedCrewMember[]> {
+        const response = await this.get(`closed_daedaluses/${shipId}/players`);
+
+        return response.status === 200 ? parseClosedCrew(await response.json()) : [];
     }
 
     async news(page: number, perPage: number): Promise<Page<NewsSummary>> {
@@ -137,9 +162,13 @@ export class EmushApi {
 
     /** Joins a ship with a character: the same request as the web client's character selection. */
     async joinShip(accountUuid: string, shipId: number, characterKey: string): Promise<JoinResult> {
+        return this.send('player', { user: accountUuid, daedalus: shipId, character: characterKey }, 'Le serveur a refusé l\'embarquement');
+    }
+
+    private async send(path: string, body: unknown, refusal: string): Promise<JoinResult> {
         let response: HttpResponse;
         try {
-            response = await this.http.post(this.url('player'), { user: accountUuid, daedalus: shipId, character: characterKey });
+            response = await this.http.post(this.url(path), body);
         } catch (error) {
             return { ok: false, message: `Serveur injoignable : ${error instanceof Error ? error.message : String(error)}` };
         }
@@ -148,7 +177,7 @@ export class EmushApi {
         }
         const detail = parseApiError(await response.json().catch(() => null));
 
-        return { ok: false, message: detail ?? `Le serveur a refusé l'embarquement (erreur ${response.status}).` };
+        return { ok: false, message: detail ?? `${refusal} (erreur ${response.status}).` };
     }
 
     private url(path: string): string {

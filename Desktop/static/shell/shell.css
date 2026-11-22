@@ -375,6 +375,92 @@ dialog .actions { display: flex; gap: 10px; justify-content: flex-end; margin-to
     .card-char { transition: none; }
 }
 
+/* ---------- shared by the death and end pages ---------- */
+.stack { display: grid; gap: 14px; align-content: start; }
+.bullets { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.bullets li { display: grid; grid-template-columns: 10px 1fr; gap: 8px; font-size: 14px; line-height: 1.4; }
+.bullets li::before { content: ""; width: 6px; height: 6px; margin-top: 7px; background: url("img/ui/point.png") center / contain no-repeat; image-rendering: pixelated; }
+.kpi.mush b { color: var(--mush-red); }
+
+/* ---------- death page ---------- */
+.death-sheet { display: flex; align-items: flex-end; gap: 6px 18px; padding: 18px 26px 22px; flex-wrap: wrap; overflow: hidden; }
+.death-portrait {
+    width: 150px; align-self: stretch; object-fit: cover; margin: -18px 0 -22px -26px; opacity: .55;
+    mask-image: linear-gradient(90deg, #000 45%, transparent);
+}
+.death-sheet .figure { margin-left: -60px; }
+.death-titles { flex: 1; min-width: 260px; display: grid; gap: 6px; align-self: center; }
+.death-cause { display: flex; align-items: center; gap: 8px; font: 17px var(--font-title); color: var(--light-cyan); }
+.death-sheet .kpi { align-self: center; }
+.epitaph-input {
+    width: 100%; min-height: 110px; resize: vertical; padding: 12px 14px;
+    background: rgba(31, 39, 104, .6); color: #fff; border: 1px solid #5f67bf; border-radius: 0;
+    font: italic 17px/1.3 var(--font-text);
+}
+.epitaph-input::placeholder { color: rgba(255, 255, 255, .7); }
+.epitaph-input:focus-visible { outline: 2px solid var(--bright-cyan); outline-offset: 0; }
+.epitaph-count { font: 13px var(--font-pixel); color: var(--bright-cyan); padding: 2px 8px; background: #5f67bf; }
+.like {
+    display: inline-flex; align-items: center; gap: 5px; padding: 3px 8px; border: 0;
+    background: rgba(17, 84, 165, .55); box-shadow: inset 0 0 0 1px var(--slot-edge); color: #fff;
+}
+.like:hover { background: rgba(17, 84, 165, 1); }
+.like[aria-pressed="true"] { background: rgba(255, 54, 118, .55); box-shadow: inset 0 0 0 1px var(--mush-red); }
+.history-lines { min-height: 80px; }
+
+/* ---------- ship end page ---------- */
+.end-banner { display: grid; grid-template-columns: minmax(0, 1fr); padding: 0; overflow: hidden; }
+.end-art { width: 100%; aspect-ratio: 785 / 260; object-fit: cover; image-rendering: pixelated; grid-area: 1 / 1; }
+.end-titles {
+    grid-area: 1 / 1; align-self: end; display: grid; gap: 8px; padding: 24px 28px;
+    background: linear-gradient(0deg, rgba(9, 10, 97, .92), rgba(9, 10, 97, .55) 70%, transparent);
+}
+.end-titles h1 { font-size: 32px; text-shadow: 0 0 6px var(--deep-blue); }
+.end-actions { grid-area: 1 / 1; align-self: start; justify-self: end; display: flex; gap: 8px; padding: 16px 20px; }
+.cheater { display: flex; gap: 10px; align-items: center; color: var(--mush-red); }
+.crew-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 14px; }
+.crew-grid.extras { grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
+.end-card {
+    display: grid; grid-template-columns: 78px minmax(0, 1fr) auto; grid-template-areas: "figure who score" "body body body";
+    gap: 10px 14px; padding: 16px 20px 18px; align-items: end; align-content: start; overflow: hidden;
+}
+.end-player .rich-link { background: none; border: 0; padding: 0; font: inherit; color: var(--green); text-decoration: underline; }
+.end-player .rich-link:hover { color: #fff; }
+.end-card .figure { grid-area: figure; }
+.end-card.star { grid-template-columns: 150px 78px minmax(0, 1fr) auto; grid-template-areas: "portrait figure who score" "portrait body body body"; }
+.end-portrait {
+    grid-area: portrait; width: 150px; height: 100%; min-height: 200px; object-fit: cover; align-self: stretch;
+    margin: -16px 0 -18px -20px; opacity: .6; mask-image: linear-gradient(90deg, #000 50%, transparent);
+}
+.end-who { grid-area: who; display: grid; gap: 2px; min-width: 0; align-self: center; }
+.end-who h3 { font: 20px var(--font-title); }
+.end-card.extra .end-who h3 { font-size: 17px; }
+.end-player { display: flex; align-items: center; gap: 12px; color: var(--soft); }
+.likes { display: inline-flex; align-items: center; gap: 4px; font-weight: 700; color: #fff; }
+.end-score { grid-area: score; display: flex; align-items: center; gap: 6px; align-self: center; }
+.end-score b { font: 34px var(--font-title); color: var(--cyan); text-shadow: 0 0 2px #000; }
+.end-card.extra .end-score b { font-size: 24px; }
+.end-score.mush b { color: var(--mush-red); }
+.end-body { grid-area: body; display: grid; gap: 8px; }
+.end-cause, .end-award { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.end-award { font: 13px var(--font-pixel); color: var(--orange); }
+.nova { height: 20px; width: auto; image-rendering: pixelated; }
+.epitaph { margin: 0; padding: 8px 12px; font-style: italic; color: var(--bright-cyan); background: rgba(31, 39, 104, .5); border-left: 3px solid #5f67bf; word-break: break-word; }
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 8px; }
+.stat { display: grid; gap: 2px; padding: 8px 12px; align-content: start; }
+.stat b { font: 22px var(--font-title); }
+.stat span { font: 12px var(--font-pixel); color: var(--bright-cyan); }
+.honours { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+.honours li { display: grid; gap: 4px; }
+.honours li b { font: 700 14px var(--font-text); font-variant: small-caps; letter-spacing: .03em; color: var(--light-cyan); }
+.signatures { display: flex; flex-wrap: wrap; gap: 6px 14px; }
+.signatures .head { width: 24px; height: 24px; }
+
+@media (max-width: 1080px) {
+    .end-card.star { grid-template-columns: 78px minmax(0, 1fr) auto; grid-template-areas: "figure who score" "body body body"; }
+    .end-card.star .end-portrait { display: none; }
+}
+
 /* ---------- settings ---------- */
 .setting { display: flex; gap: 12px; align-items: flex-start; cursor: pointer; padding: 6px 0; }
 .setting.disabled { cursor: not-allowed; opacity: .5; }
@@ -410,6 +496,12 @@ body.mini { overflow: hidden; background: var(--space); }
 .mini-point b { font: 15px var(--font-title); }
 .mini-point span { font: 11px var(--font-pixel); color: var(--bright-cyan); }
 .mini-alerts { display: flex; flex-wrap: wrap; gap: 6px; }
+.mini-alerts .tag { display: inline-flex; align-items: center; gap: 4px; }
+/* The game's banner gauges: oxygen, fuel, hull, plasma shield, crew alive. */
+.mini-ship { display: flex; justify-content: space-between; gap: 4px; padding: 6px 10px; background: rgba(9, 10, 97, .55); box-shadow: inset 0 0 0 1px rgba(57, 101, 251, .45); }
+.mini-gauge { display: inline-flex; align-items: center; gap: 5px; }
+.mini-gauge b { font: 15px var(--font-title); }
+.mini-gauge.low b { color: var(--mush-red); }
 .mini-chat-box { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 8px; }
 .mini-chat-title { display: flex; justify-content: space-between; align-items: center; }
 .mini-chat { list-style: none; margin: 0; padding: 0 4px 0 0; overflow-y: auto; display: grid; gap: 6px; align-content: start; }

@@ -4,8 +4,9 @@ import {
     leadingNumber, numberOrNull, stringOrNull,
 } from './json';
 import {
-    Account, Achievement, ChannelSummary, ChatMessage, CrewCharacter, Gauge, CrewOffer, GameCounters, NewsArticle, NewsSummary, Page,
-    PlayerStatus, PlayerSummary, RankedShip, ShipAlert, ShipHistoryEntry, Statistic,
+    Account, Achievement, ChannelSummary, ChatMessage, ClosedCrewMember, ClosedShip, CrewCharacter, CrewOffer, DeathReport, DeathReportCrewmate,
+    EndCause, GameCounters, Gauge, NewsArticle, NewsSummary, Page, PlayerStatus, PlayerSummary, RankedShip, ShipAlert, ShipHistoryEntry, ShipState,
+    Statistic,
 } from './models';
 
 // Every parser accepts `unknown` and returns null / skips items on any unexpected shape:
@@ -59,7 +60,165 @@ export function parsePlayer(data: unknown): PlayerSummary | null {
             moralPoints: parseGauge(data.moralPoint),
         },
         room: isRecord(data.room) ? stringOrNull(data.room.name) : null,
+        isMush: booleanOr(data.isMush, false),
+        titles: names(data.titles),
+        diseases: names(data.diseases),
+        ship: parseShipState(daedalus),
     };
+}
+
+function parseShipState(daedalus: unknown): ShipState {
+    const ship = isRecord(daedalus) ? daedalus : {};
+    const quantity = (value: unknown): number | null => isRecord(value) ? numberOrNull(value.quantity) : null;
+    const humans = numberOrNull(ship.humanPlayerAlive);
+    const mush = numberOrNull(ship.mushPlayerAlive);
+
+    return {
+        oxygen: quantity(ship.oxygen),
+        fuel: quantity(ship.fuel),
+        hull: quantity(ship.hull),
+        shield: quantity(ship.shield),
+        crewAlive: humans === null ? null : humans + (mush ?? 0),
+    };
+}
+
+/** Plain names of a list of `{ name }` objects (titles, diseases...). */
+function names(value: unknown): string[] {
+    return (Array.isArray(value) ? value : []).flatMap((item) => {
+        const name = isRecord(item) ? stringOrNull(item.name) : null;
+        return name === null ? [] : [toPlainText(name)];
+    });
+}
+
+function textLines(value: unknown): string[] {
+    const items = Array.isArray(value) ? value : isRecord(value) ? Object.values(value) : [];
+
+    return items.flatMap((item) => {
+        const text = stringOrNull(item);
+        return text === null ? [] : [text];
+    });
+}
+
+function parseEndCause(value: unknown): EndCause | null {
+    if (!isRecord(value) || typeof value.key !== 'string' || value.key === '') {
+        return null;
+    }
+
+    return {
+        key: value.key,
+        name: toPlainText(stringOrNull(value.name) ?? value.key),
+        shortName: toPlainText(stringOrNull(value.shortName) ?? stringOrNull(value.name) ?? value.key),
+        description: toPlainText(stringOrNull(value.description) ?? ''),
+    };
+}
+
+/** The death page data. Null unless the character is dead and the page is complete enough to show. */
+export function parseDeathReport(data: unknown): DeathReport | null {
+    if (!isRecord(data) || !isPositiveInteger(data.id) || data.gameStatus !== 'finished' || !isRecord(data.character)) {
+        return null;
+    }
+    const { character } = data;
+    const endCause = parseEndCause(data.endCause);
+    if (typeof character.key !== 'string' || !CHARACTER_KEY.test(character.key) || endCause === null) {
+        return null;
+    }
+
+    const crew = (Array.isArray(data.players) ? data.players : []).flatMap((row): DeathReportCrewmate[] => {
+        if (!isRecord(row) || !isPositiveInteger(row.id) || !isRecord(row.character) || typeof row.character.key !== 'string' || !CHARACTER_KEY.test(row.character.key)) {
+            return [];
+        }
+
+        return [{
+            playerId: row.id,
+            characterKey: row.character.key,
+            characterName: stringOrNull(row.character.value) ?? row.character.key,
+            deathDay: numberOrNull(row.deathDay),
+            deathCycle: numberOrNull(row.deathCycle),
+            endCause: parseEndCause(row.endCause),
+            likes: Math.max(0, Math.floor(numberOrNull(row.likes) ?? 0)),
+        }];
+    });
+
+    return {
+        playerId: data.id,
+        characterKey: character.key,
+        characterName: stringOrNull(character.value) ?? character.key,
+        isMush: booleanOr(data.isMush, false),
+        triumph: isRecord(data.triumph) ? numberOrNull(data.triumph.quantity) : null,
+        endCause,
+        triumphGains: textLines(data.triumphGains),
+        highlights: textLines(data.playerHighlights),
+        crew,
+    };
+}
+
+export function parseClosedShip(data: unknown): ClosedShip | null {
+    if (!isRecord(data) || !isPositiveInteger(data.id) || typeof data.endCause !== 'string') {
+        return null;
+    }
+    const statistics = isRecord(data.statistics) ? data.statistics : {};
+    const holders = Array.isArray(data.titleHolders) ? data.titleHolders : isRecord(data.titleHolders) ? Object.values(data.titleHolders) : [];
+
+    return {
+        id: data.id,
+        endCause: data.endCause,
+        daysSurvived: numberOrNull(data.daysSurvived),
+        cyclesSurvived: numberOrNull(data.cyclesSurvived),
+        humanTriumph: numberOrNull(data.humanTriumphSum),
+        mushTriumph: numberOrNull(data.mushTriumphSum),
+        isCheater: booleanOr(data.isCheater, false),
+        statistics: {
+            title: toPlainText(stringOrNull(statistics.title) ?? 'Statistiques').replace(/\s*:\s*$/, ''),
+            lines: (Array.isArray(statistics.lines) ? statistics.lines : []).flatMap((line) => {
+                const name = isRecord(line) ? stringOrNull(line.name) : null;
+                const value = isRecord(line) ? numberOrNull(line.value) : null;
+                return name === null || value === null ? [] : [{ name: toPlainText(name), value }];
+            }),
+        },
+        titleHolders: holders.flatMap((holder) => {
+            const title = isRecord(holder) ? stringOrNull(holder.title) : null;
+            if (title === null || !isRecord(holder)) {
+                return [];
+            }
+            return [{ title: toPlainText(title), characterKeys: characterKeys(holder.characterKeys) }];
+        }),
+        funFacts: (Array.isArray(data.funFacts) ? data.funFacts : []).flatMap((fact) => {
+            if (!isRecord(fact) || stringOrNull(fact.title) === null || typeof fact.characterKey !== 'string' || !CHARACTER_KEY.test(fact.characterKey)) {
+                return [];
+            }
+            return [{ title: toPlainText(String(fact.title)), description: toPlainText(stringOrNull(fact.description) ?? ''), characterKey: fact.characterKey }];
+        }),
+    };
+}
+
+function characterKeys(value: unknown): string[] {
+    const items = Array.isArray(value) ? value : isRecord(value) ? Object.values(value) : [];
+
+    return items.filter((key): key is string => typeof key === 'string' && CHARACTER_KEY.test(key));
+}
+
+export function parseClosedCrew(data: unknown): ClosedCrewMember[] {
+    return collectionItems(data).flatMap((row): ClosedCrewMember[] => {
+        if (!isRecord(row) || !isPositiveInteger(row.id) || typeof row.characterKey !== 'string' || !CHARACTER_KEY.test(row.characterKey)) {
+            return [];
+        }
+
+        return [{
+            id: row.id,
+            characterKey: row.characterKey,
+            userId: typeof row.userId === 'string' && UUID.test(row.userId) ? row.userId : null,
+            username: stringOrNull(row.username) ?? '?',
+            message: stringOrNull(row.message),
+            endCause: stringOrNull(row.endCause) ?? '',
+            dayDeath: numberOrNull(row.dayDeath),
+            cycleDeath: numberOrNull(row.cycleDeath),
+            likes: Math.max(0, Math.floor(numberOrNull(row.likes) ?? 0)),
+            isMush: booleanOr(row.isMush, false),
+            score: numberOrNull(row.score) ?? numberOrNull(row.triumph),
+            highlights: textLines(row.playerHighlights),
+            triumphGains: textLines(row.triumphGains),
+        }];
+    });
 }
 
 function parseGauge(value: unknown): Gauge | null {

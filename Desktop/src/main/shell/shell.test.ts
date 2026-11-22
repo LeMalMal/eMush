@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { SAMPLE_ACCOUNT } from '../api/FakeGameServer';
-import { parseAccount } from '../api/parsers';
+import { parseAccount, parsePlayer } from '../api/parsers';
 import { LoginReturnWatcher } from './LoginReturnWatcher';
 import { classifyWebUrl, EMUSH_FORUM_URL, nativeNavigationFor, Navigation, parseNavigation, resolvePlay, webUrlFor } from './routes';
 import { ShellNavigator, ShellPagePort, WebViewPort } from './ShellNavigator';
@@ -54,13 +54,15 @@ describe('parseNavigation', () => {
         [{ page: 'profile' }, { page: 'profile' }],
         [{ page: 'profile', id: UUID }, { page: 'profile', id: UUID }],
         [{ page: 'ship', id: 225 }, { page: 'ship', id: 225 }],
+        [{ page: 'ship-web', id: 225 }, { page: 'ship-web', id: 225 }],
+        [{ page: 'death' }, { page: 'death' }],
     ])('accepts %j', (input, expected) => {
         expect(parseNavigation(input)).toEqual(expected);
     });
 
     it.each([
         null, 'home', { page: 'admin' }, { page: 'login' }, { page: 'web' }, { page: 'article' }, { page: 'article', id: '38' },
-        { page: 'ship', id: -1 }, { page: 'profile', id: '../../etc' }, { page: 'home', id: 1 },
+        { page: 'ship', id: -1 }, { page: 'ship-web' }, { page: 'death', id: 3 }, { page: 'profile', id: '../../etc' }, { page: 'home', id: 1 },
     ])('rejects %j', (input) => {
         expect(parseNavigation(input)).toBeNull();
     });
@@ -69,7 +71,7 @@ describe('parseNavigation', () => {
 describe('web pages', () => {
     it('maps web pages to their URL', () => {
         expect(webUrlFor({ page: 'game' }, server)).toBe('https://emush.eternaltwin.org/game');
-        expect(webUrlFor({ page: 'ship', id: 225 }, server)).toBe('https://emush.eternaltwin.org/the-end/225');
+        expect(webUrlFor({ page: 'ship-web', id: 225 }, server)).toBe('https://emush.eternaltwin.org/the-end/225');
         expect(webUrlFor({ page: 'forum' }, server)).toBe(EMUSH_FORUM_URL);
     });
 
@@ -79,17 +81,18 @@ describe('web pages', () => {
         expect(nativeNavigationFor('https://emush.eternaltwin.org/ranking/', server)).toEqual({ page: 'ranking' });
         expect(nativeNavigationFor('https://emush.eternaltwin.org/me', server)).toEqual({ page: 'profile' });
         expect(nativeNavigationFor(`https://emush.eternaltwin.org/user/${UUID}`, server)).toEqual({ page: 'profile', id: UUID });
+        expect(nativeNavigationFor('https://emush.eternaltwin.org/the-end/225', server)).toEqual({ page: 'ship', id: 225 });
     });
 
-    it('keeps the game, rules, ship pages and other sites on the web', () => {
-        for (const url of ['https://emush.eternaltwin.org/game', 'https://emush.eternaltwin.org/rules', 'https://emush.eternaltwin.org/the-end/225', 'https://eternaltwin.org/news']) {
+    it('keeps the game, rules and other sites on the web', () => {
+        for (const url of ['https://emush.eternaltwin.org/game', 'https://emush.eternaltwin.org/rules', 'https://emush.eternaltwin.org/the-end/abc', 'https://eternaltwin.org/news']) {
             expect(nativeNavigationFor(url, server)).toBeNull();
         }
     });
 
     it('names the web page the view is on', () => {
         expect(classifyWebUrl('https://emush.eternaltwin.org/game', server)).toEqual({ page: 'game' });
-        expect(classifyWebUrl('https://emush.eternaltwin.org/the-end/225', server)).toEqual({ page: 'ship', id: 225 });
+        expect(classifyWebUrl('https://emush.eternaltwin.org/the-end/225', server)).toEqual({ page: 'ship-web', id: 225 });
         expect(classifyWebUrl(`${EMUSH_FORUM_URL}/threads/1`, server)).toEqual({ page: 'forum' });
         expect(classifyWebUrl('https://eternaltwin.org/forum/threads/abc', server)).toEqual({ page: 'forum' });
         expect(classifyWebUrl('https://discord.com/login', server)).toEqual({ page: 'web' });
@@ -104,6 +107,12 @@ describe('resolvePlay', () => {
         expect(resolvePlay(account && { ...account, hasAcceptedRules: false })).toEqual({ page: 'rules' });
         expect(resolvePlay(account)).toEqual({ page: 'crew' });
         expect(resolvePlay(account && { ...account, playerId: 812 })).toEqual({ page: 'game' });
+    });
+
+    it('leads a dead character to the death page, where the epitaph is written', () => {
+        const dead = parsePlayer({ id: 812, character: { key: 'jin_su' }, gameStatus: 'finished' });
+
+        expect(resolvePlay(account && { ...account, playerId: 812 }, dead)).toEqual({ page: 'death' });
     });
 });
 
@@ -127,6 +136,19 @@ describe('ShellNavigator', () => {
 
         expect(webView.visibleUrl).toBeNull();
         expect(shellPage.last).toEqual({ page: 'news' });
+    });
+
+    it('shows a ship\'s end page natively, and keeps the full web version when the player asks for it', () => {
+        const { navigator, webView, shellPage } = setup();
+        navigator.go({ page: 'game' });
+
+        navigator.onWebNavigation('https://emush.eternaltwin.org/the-end/225');
+        expect(shellPage.last).toEqual({ page: 'ship', id: 225 });
+
+        navigator.go({ page: 'ship-web', id: 225 });
+        navigator.onWebNavigation('https://emush.eternaltwin.org/the-end/225');
+        expect(webView.visibleUrl).toBe('https://emush.eternaltwin.org/the-end/225');
+        expect(shellPage.last).toEqual({ page: 'ship-web', id: 225 });
     });
 
     it('keeps the bar in sync when the web game moves between web pages', () => {

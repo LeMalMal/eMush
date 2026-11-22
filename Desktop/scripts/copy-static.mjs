@@ -54,9 +54,28 @@ const icons = {
     pm: 'ui_icons/player_variables/pm.png',
     hp: 'ui_icons/player_variables/hp.png',
     moral: 'ui_icons/player_variables/moral.png',
+    alive: 'ready.png',
+    like: 'dislike.png',
+    oxygen: 'o2.png',
+    fuel: 'ui_icons/fuel.png',
+    hull: 'shield.png',
+    shield: 'plasma.png',
+    shield_off: 'plasma_off.png',
+    crew: 'in_game.png',
+    disease: 'ui_icons/pill.png',
 };
 for (const [name, file] of Object.entries(icons)) {
     copy(join(images, file), join(img, 'icons', `${name}.png`));
+}
+
+// End page artwork: how the ship ended, and the awards of its crew.
+mkdirSync(join(img, 'endings'), { recursive: true });
+mkdirSync(join(img, 'nova'), { recursive: true });
+for (const ending of ['sol', 'sol-infected', 'eden', 'eden-infected', 'neron', 'destroyed']) {
+    copy(join(images, `ending-${ending}.png`), join(img, 'endings', `${ending}.png`));
+}
+for (const award of ['first', 'second', 'third', 'fourth', 'fifth', 'sixth']) {
+    copy(join(images, 'nova', `${award}.png`), join(img, 'nova', `${award}.png`));
 }
 
 // Characters, by API key: portrait (painted), head (16 px) and body sprite (pixel art).
@@ -72,3 +91,5 @@ for (const [key, file] of Object.entries(portraits)) {
     copy(join(images, 'char', 'head', `${key}.png`), join(img, 'heads', `${key}.png`));
     copy(join(images, 'char', 'body', `${key}.png`), join(img, 'bodies', `${key}.png`));
 }
+// NERON writes in the chat too: the game shows it with this small head.
+copy(join(images, 'comms', 'neron-mini.png'), join(img, 'heads', 'neron.png'));

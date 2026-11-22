@@ -3,6 +3,8 @@ import { pathToFileURL } from 'node:url';
 import { EmushApi } from '../api/EmushApi';
 import { NavigationPolicy } from '../navigation/NavigationPolicy';
 import { JoinCrew, LoadCrew } from '../pages/crew';
+import { EndAdventure, LoadDeath } from '../pages/death';
+import { LoadShipEnd } from '../pages/shipEnd';
 import { LoadAccount, LoadHome } from '../pages/home';
 import { LoadArticle, LoadNews } from '../pages/news';
 import { LoadProfile } from '../pages/profile';
@@ -54,9 +56,12 @@ export function installShell({ window, shellFile, gameView, serverUrl, api, sess
         ranking: new LoadRanking(api),
         profile: new LoadProfile(api),
         crew: new LoadCrew(api),
+        death: new LoadDeath(api),
+        ship: new LoadShipEnd(api),
         settings: settingsPage.load,
     };
     const joinCrew = new JoinCrew(api);
+    const endAdventure = new EndAdventure(api);
 
     const fromShell = (event: IpcMainEvent | IpcMainInvokeEvent): boolean =>
         event.sender === shellContents && event.senderFrame?.url.split(/[?#]/)[0] === shellUrl;
@@ -87,6 +92,19 @@ export function installShell({ window, shellFile, gameView, serverUrl, api, sess
         const result = await joinCrew.execute(request);
         if (result.ok) {
             navigator.go({ page: 'game' });
+        }
+
+        return result;
+    });
+
+    ipcMain.handle('shell:end-adventure', async (event, request: unknown) => {
+        if (!fromShell(event)) {
+            reject('shell:end-adventure', request);
+            return { ok: false, message: 'Requête refusée.' };
+        }
+        const result = await endAdventure.execute(request);
+        if (result.ok) {
+            navigator.go({ page: 'home' });
         }
 
         return result;
@@ -155,7 +173,8 @@ export function installShell({ window, shellFile, gameView, serverUrl, api, sess
             navigator.go({ page: 'home' }); // Server unreachable: the home page explains it.
             return;
         }
-        const destination = resolvePlay(account);
+        const player = account?.playerId ? await api.player(account.playerId).catch(() => null) : null;
+        const destination = resolvePlay(account, player);
         if (destination === 'login') {
             await navigator.startLogin();
         } else {

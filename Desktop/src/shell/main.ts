@@ -3,6 +3,8 @@ import { bridge } from './bridge';
 import { h } from './dom';
 import { PageContext } from './page';
 import { renderCrew } from './pages/crew';
+import { renderDeath } from './pages/death';
+import { renderShipEnd } from './pages/shipEnd';
 import { renderHome } from './pages/home';
 import { renderArticle, renderNews } from './pages/news';
 import { renderProfile } from './pages/profile';
@@ -19,8 +21,8 @@ const loginPill = document.getElementById('login-pill') as HTMLButtonElement;
 
 /** Which navigation entry is lit for each page. */
 const SECTION: Record<ShellPage, string | null> = {
-    home: 'home', crew: 'play', game: 'play', news: 'news', article: 'news', forum: 'forum',
-    ranking: 'ranking', ship: 'ranking', profile: 'profile', rules: 'rules', settings: 'settings', login: null, web: null,
+    home: 'home', crew: 'play', death: 'play', game: 'play', news: 'news', article: 'news', forum: 'forum',
+    ranking: 'ranking', ship: 'ranking', 'ship-web': 'ranking', profile: 'profile', rules: 'rules', settings: 'settings', login: null, web: null,
 };
 
 let current: Navigation = { page: 'home' };
@@ -61,6 +63,8 @@ function render(navigation: Navigation): void {
     switch (navigation.page) {
         case 'home': void renderHome(context); break;
         case 'crew': void renderCrew(context); break;
+        case 'death': void renderDeath(context); break;
+        case 'ship': void renderShipEnd(context, Number(navigation.id)); break;
         case 'news': void renderNews(context); break;
         case 'article': void renderArticle(context, Number(navigation.id)); break;
         case 'ranking': void renderRanking(context); break;

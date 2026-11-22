@@ -1,10 +1,10 @@
-import { Account } from '../api/models';
+import { Account, PlayerSummary } from '../api/models';
 import { UUID } from '../api/parsers';
 
 /** Pages drawn by the client itself, in the shell window. */
-export const NATIVE_PAGES = ['home', 'crew', 'news', 'article', 'ranking', 'profile', 'settings'] as const;
+export const NATIVE_PAGES = ['home', 'crew', 'death', 'news', 'article', 'ranking', 'ship', 'profile', 'settings'] as const;
 /** Pages of the web game (or Eternaltwin), shown in the web view under the shell's navigation bar. */
-export const WEB_PAGES = ['game', 'forum', 'rules', 'ship', 'login', 'web'] as const;
+export const WEB_PAGES = ['game', 'forum', 'rules', 'ship-web', 'login', 'web'] as const;
 
 export type NativePage = typeof NATIVE_PAGES[number];
 export type WebPage = typeof WEB_PAGES[number];
@@ -16,7 +16,9 @@ export const EMUSH_FORUM_URL = 'https://eternaltwin.org/forum/sections/b5ddc792-
 export const EMUSH_WIKI_URL = 'https://fr.emushpedia.com/';
 
 /** Pages the shell UI may ask for. `login` and `web` are only reached through commands and links. */
-const REQUESTABLE: readonly string[] = ['home', 'crew', 'news', 'article', 'ranking', 'profile', 'settings', 'game', 'forum', 'rules', 'ship'];
+const REQUESTABLE: readonly string[] = [
+    'home', 'crew', 'death', 'news', 'article', 'ranking', 'ship', 'profile', 'settings', 'game', 'forum', 'rules', 'ship-web',
+];
 
 export function isWebPage(page: ShellPage): page is WebPage {
     return (WEB_PAGES as readonly string[]).includes(page);
@@ -32,7 +34,7 @@ export function parseNavigation(value: unknown): Navigation | null {
         return null;
     }
 
-    if (page === 'article' || page === 'ship') {
+    if (page === 'article' || page === 'ship' || page === 'ship-web') {
         return typeof id === 'number' && Number.isInteger(id) && id > 0 ? { page, id } : null;
     }
     if (page === 'profile') {
@@ -51,7 +53,7 @@ export function webUrlFor(navigation: Navigation, serverUrl: URL): string {
     switch (navigation.page) {
         case 'game': return onServer('/game');
         case 'rules': return onServer('/rules');
-        case 'ship': return onServer(`/the-end/${navigation.id}`);
+        case 'ship-web': return onServer(`/the-end/${navigation.id}`);
         case 'forum': return EMUSH_FORUM_URL;
         case 'login': return onServer('/');
         default: throw new Error(`No web page for ${navigation.page}`);
@@ -86,6 +88,10 @@ export function nativeNavigationFor(rawUrl: string, serverUrl: URL): Navigation 
     if (path === '/me') {
         return { page: 'profile' };
     }
+    const ship = /^\/the-end\/(\d{1,9})$/.exec(path);
+    if (ship) {
+        return { page: 'ship', id: Number(ship[1]) };
+    }
     const user = /^\/user\/([0-9a-f-]{36})$/i.exec(path);
     if (user && UUID.test(user[1])) {
         return { page: 'profile', id: user[1] };
@@ -116,11 +122,11 @@ export function classifyWebUrl(rawUrl: string, serverUrl: URL): Navigation {
     }
     const ship = /^\/the-end\/(\d{1,9})$/.exec(url.pathname);
 
-    return ship ? { page: 'ship', id: Number(ship[1]) } : { page: 'web' };
+    return ship ? { page: 'ship-web', id: Number(ship[1]) } : { page: 'web' };
 }
 
-/** Where "Play" leads, depending on the account. */
-export function resolvePlay(account: Account | null): Navigation | 'login' {
+/** Where "Play" leads, depending on the account and, when there is one, the state of its character. */
+export function resolvePlay(account: Account | null, player: PlayerSummary | null = null): Navigation | 'login' {
     if (account === null) {
         return 'login';
     }
@@ -128,5 +134,9 @@ export function resolvePlay(account: Account | null): Navigation | 'login' {
         return { page: 'rules' };
     }
 
-    return account.playerId === null ? { page: 'crew' } : { page: 'game' };
+    if (account.playerId === null) {
+        return { page: 'crew' };
+    }
+
+    return player?.status === 'finished' ? { page: 'death' } : { page: 'game' };
 }

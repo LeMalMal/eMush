@@ -75,7 +75,8 @@ export class ShellNavigator {
         if (this.loginInProgress || !isWebPage(this.current.page)) {
             return;
         }
-        const native = nativeNavigationFor(url, this.serverUrl);
+        // The web version of a page the client also draws (a ship's full end page) was asked for: keep it.
+        const native = this.isRequestedWebPage(url) ? null : nativeNavigationFor(url, this.serverUrl);
         if (native) {
             this.go(native);
             return;
@@ -85,5 +86,22 @@ export class ShellNavigator {
             this.current = page;
             this.shellPage.showPage(page);
         }
+    }
+
+    private isRequestedWebPage(url: string): boolean {
+        const { page } = this.current;
+        if (page === 'web' || page === 'login' || !isWebPage(page)) {
+            return false;
+        }
+        const path = (raw: string): string => {
+            try {
+                const parsed = new URL(raw);
+                return `${parsed.origin}${parsed.pathname.replace(/\/+$/, '')}`;
+            } catch {
+                return raw;
+            }
+        };
+
+        return path(url) === path(webUrlFor(this.current, this.serverUrl));
     }
 }

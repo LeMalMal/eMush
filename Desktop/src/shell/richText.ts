@@ -9,6 +9,11 @@ export function renderRich(blocks: RichBlock[]): HTMLElement {
         : h('ul', {}, ...block.items.map((item) => h('li', {}, ...item.map(renderInline))))));
 }
 
+/** One line of game text (a highlight, a triumph gain). */
+export function renderLine(inlines: Inline[]): HTMLElement {
+    return h('span', {}, ...inlines.map(renderInline));
+}
+
 function renderInline(inline: Inline): Node {
     let node: Node = inline.href
         ? h('button', { class: 'rich-link', type: 'button', title: inline.href, onclick: () => bridge.openLink(inline.href as string) }, inline.text)

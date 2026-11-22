@@ -79,11 +79,65 @@ export const SAMPLE_PLAYER_IN_GAME = {
     actionPoint: { quantity: 4, max: 12 },
     movementPoint: { quantity: 10, max: 12 },
     room: { key: 'bridge', name: 'Pont' },
+    isMush: false,
+    titles: [{ id: 'commander', name: 'Commandant', description: 'Le commandant dirige le Daedalus.' }],
+    diseases: [{ key: 'flu', name: 'Grippe', type: 'disease', description: 'Fièvre.' }],
     daedalus: {
         id: 77,
+        oxygen: { quantity: 24, name: 'Oxygène', description: '' },
+        fuel: { quantity: 9, name: 'Fuel', description: '' },
+        hull: { quantity: 87, name: 'Coque', description: '' },
+        shield: { quantity: 0, name: 'Bouclier plasma', description: '' },
+        humanPlayerAlive: 12,
+        mushPlayerAlive: 2,
         timer: { name: 'Cycle', timerCycle: '2026-11-21T23:00:00+00:00' },
         calendar: { day: 2, cycle: 3, dayName: 'Jour', cycleName: 'Cycle' },
     },
+};
+
+/** `GET player/:id` once the character is dead (DeadPlayerNormalizer), trimmed. */
+export const SAMPLE_DEAD_PLAYER = {
+    id: 812,
+    character: { key: 'jin_su', value: 'Jin-Su' },
+    triumph: { name: 'Triomphe', quantity: 47 },
+    daedalus: { key: 77, calendar: { day: 9, cycle: 1 } },
+    gameStatus: 'finished',
+    endCause: { key: 'assassinated', shortName: 'Assassiné', name: 'Assassiné par un équipier', description: 'Un équipier vous a tué.' },
+    isMush: false,
+    triumphGains: ['8 x Cycle humain ( +8 :triumph: )', '1 x Recherche ( +3 :triumph: )'],
+    playerHighlights: ['Vous avez réparé la **Porte** du Pont.'],
+    players: [
+        { id: 813, character: { key: 'hua', value: 'Hua' }, deathDay: 7, deathCycle: 4, likes: 2, endCause: { key: 'depression', shortName: 'Dépression', name: 'Dépression fatale' } },
+        { id: 814, character: { key: 'chun', value: 'Chun' }, deathDay: null, deathCycle: null, likes: 0, endCause: { key: 'still_living', shortName: 'Encore en vie', name: 'Encore en vie' } },
+    ],
+};
+
+/** `GET closed_daedaluses/:id` (ClosedDaedalusNormalizer), trimmed. */
+export const SAMPLE_CLOSED_SHIP = {
+    id: 225,
+    endCause: 'sol_return',
+    endDay: 21,
+    endCycle: 4,
+    daysSurvived: 21,
+    cyclesSurvived: 172,
+    humanTriumphSum: 5626,
+    mushTriumphSum: 0,
+    isCheater: false,
+    statistics: { title: 'Statistiques', lines: [{ name: 'Hunters abattus', value: 1203 }, { name: 'Explorations', value: 14 }] },
+    titleHolders: {
+        commander: { title: 'Commandant', characterKeys: ['jin_su'] },
+        neron_manager: { title: 'Responsable NERON', characterKeys: [] },
+    },
+    funFacts: [{ title: 'Le plus gourmand', description: 'A mangé le plus de rations.', characterKey: 'chun' }],
+};
+
+/** `GET closed_daedaluses/:id/players` (ClosedPlayerNormalizer), trimmed. */
+export const SAMPLE_CLOSED_CREW = {
+    'hydra:member': [
+        { id: 4, characterKey: 'chun', userId: ACCOUNT_UUID, username: 'lemal', message: '**Mission\naccomplie** Quel voyage !', endCause: 'sol_return', dayDeath: 21, cycleDeath: 4, likes: 3, isMush: false, score: 120, playerHighlights: ['A réparé **3** équipements.'] },
+        { id: 5, characterKey: 'ian', userId: 'not-a-uuid', username: 'ianfan', message: null, endCause: 'assassinated', dayDeath: 6, cycleDeath: 2, likes: 0, isMush: true, score: 210, playerHighlights: [] },
+        { id: 6, characterKey: '../etc', username: 'bad', endCause: 'eden', score: 999 },
+    ],
 };
 
 export const SAMPLE_NEWS = [
