@@ -7,6 +7,7 @@ export type MenuActions = {
     zoomOut(): void;
     resetZoom(): void;
     toggleDevTools(): void;
+    togglePanel(): void;
 };
 
 /**
@@ -36,6 +37,7 @@ export function buildApplicationMenu(options: { devTools: boolean; actions: Menu
             label: 'eMush',
             submenu: [
                 { label: 'Accueil', accelerator: 'CmdOrCtrl+H', click: () => actions.showHome() },
+                { label: 'Mini-panneau', accelerator: 'CmdOrCtrl+Shift+M', click: () => actions.togglePanel() },
                 { type: 'separator' },
                 { role: 'quit', label: 'Quitter' },
             ],

@@ -27,7 +27,12 @@ export type PlayerSummary = {
     cycle: number | null;
     nextCycleAt: Date | null;
     triumph: number | null;
+    /** Action, movement, health and moral points (null when the API does not send them). */
+    points: { actionPoints: Gauge | null; movementPoints: Gauge | null; healthPoints: Gauge | null; moralPoints: Gauge | null };
+    room: string | null;
 };
+
+export type Gauge = { value: number; max: number | null };
 
 export type NewsSummary = {
     id: number;
@@ -94,4 +99,4 @@ export type ChannelSummary = { id: number; scope: string; name: string; unread: 
 export type ShipAlert = { key: string; name: string; description: string };
 
 /** A chat message (or a reply), with its author's character name. */
-export type ChatMessage = { id: number; author: string; text: string; unread: boolean; replies: ChatMessage[] };
+export type ChatMessage = { id: number; author: string; authorKey: string | null; text: string; date: string | null; unread: boolean; replies: ChatMessage[] };

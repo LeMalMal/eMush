@@ -50,6 +50,10 @@ const icons = {
     dead: 'ui_icons/dead.png',
     planet: 'ui_icons/planet.png',
     xp: 'xp.png',
+    pa: 'ui_icons/player_variables/pa.png',
+    pm: 'ui_icons/player_variables/pm.png',
+    hp: 'ui_icons/player_variables/hp.png',
+    moral: 'ui_icons/player_variables/moral.png',
 };
 for (const [name, file] of Object.entries(icons)) {
     copy(join(images, file), join(img, 'icons', `${name}.png`));

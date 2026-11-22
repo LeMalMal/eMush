@@ -76,6 +76,9 @@ export const SAMPLE_PLAYER_IN_GAME = {
     character: { key: 'jin_su', value: 'Jin-Su', description: 'Commandant suprême du Daedalus.' },
     gameStatus: 'in_game',
     triumph: { name: 'Triomphe', quantity: 12 },
+    actionPoint: { quantity: 4, max: 12 },
+    movementPoint: { quantity: 10, max: 12 },
+    room: { key: 'bridge', name: 'Pont' },
     daedalus: {
         id: 77,
         timer: { name: 'Cycle', timerCycle: '2026-11-21T23:00:00+00:00' },

@@ -7,7 +7,7 @@
   "private": true,
   "main": "dist/main/main.js",
   "scripts": {
-    "build": "tsc -p tsconfig.json && tsc -p tsconfig.shell.json && esbuild src/shell/main.ts --bundle --format=iife --target=chrome130 --outfile=dist/shell/shell.js --log-level=warning && node scripts/copy-static.mjs",
+    "build": "tsc -p tsconfig.json && tsc -p tsconfig.shell.json && esbuild src/shell/main.ts --bundle --format=iife --target=chrome130 --outfile=dist/shell/shell.js --log-level=warning && esbuild src/mini/main.ts --bundle --format=iife --target=chrome130 --outfile=dist/mini/mini.js --log-level=warning && node scripts/copy-static.mjs",
     "start": "npm run build && electron .",
     "start:local": "npm run build && electron . --server=http://localhost --eternaltwin=http://localhost:50320",
     "test": "vitest run",

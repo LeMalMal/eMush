@@ -3,7 +3,7 @@ import { h } from './dom';
 
 // Shared pieces of the retro interface (see static/shell/shell.css for the visual rules).
 
-export type IconName = 'triumph' | 'triumph_mush' | 'sol' | 'dead' | 'planet' | 'xp';
+export type IconName = 'triumph' | 'triumph_mush' | 'sol' | 'dead' | 'planet' | 'xp' | 'pa' | 'pm' | 'hp' | 'moral';
 
 export function portraitUrl(characterKey: string): string {
     return `img/characters/${encodeURIComponent(characterKey)}.jpg`;

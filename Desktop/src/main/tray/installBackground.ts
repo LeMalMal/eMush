@@ -7,6 +7,8 @@ import { SettingsService } from '../background/settings';
 import { ShellNavigator } from '../shell/ShellNavigator';
 import { ElectronNotifier } from './ElectronNotifier';
 import { TrayController } from './TrayController';
+import { MiniPanel } from '../mini/MiniPanel';
+import { LoadMiniPanel } from '../pages/mini';
 
 export type BackgroundDependencies = {
     window: BrowserWindow;
@@ -14,6 +16,8 @@ export type BackgroundDependencies = {
     navigator: ShellNavigator;
     settings: SettingsService;
     icons: { tray: string; badge: string; notification: string };
+    /** The small panel next to the clock. */
+    mini: { file: string; preload: string; devTools: boolean };
     /** Logs every check (development builds). */
     trace: boolean;
 };
@@ -21,13 +25,14 @@ export type BackgroundDependencies = {
 export type Background = {
     quit(): void;
     testNotification(): void;
+    togglePanel(): void;
 };
 
 /**
  * Keeps eMush alive in the background: notification-area icon, close/minimize to the tray,
  * and the game watch that raises Windows notifications for cycles, days, alerts and chat messages.
  */
-export function installBackground({ window, api, navigator, settings, icons, trace }: BackgroundDependencies): Background {
+export function installBackground({ window, api, navigator, settings, icons, mini, trace }: BackgroundDependencies): Background {
     let quitting = false;
 
     const openWindow = (): void => {
@@ -55,14 +60,25 @@ export function installBackground({ window, api, navigator, settings, icons, tra
         } else {
             openWindow();
         }
-    });
+    }, trace);
     const testNotification = (): void => notifier.notify({
         title: 'Notifications eMush actives',
         body: 'Tu seras prévenu des nouveaux cycles, des nouveaux jours, des alertes et des messages.',
     });
 
+    const panel = new MiniPanel({
+        file: mini.file,
+        preload: mini.preload,
+        devTools: mini.devTools,
+        iconPath: icons.notification,
+        loadView: new LoadMiniPanel(api),
+        openGame: resumeGame,
+        openWindow,
+    });
+
     const tray = new TrayController(window, settings, { tray: icons.tray, badge: icons.badge }, {
         openWindow,
+        togglePanel: () => panel.toggle(),
         resumeGame,
         openSettings: () => {
             openWindow();
@@ -130,5 +146,5 @@ export function installBackground({ window, api, navigator, settings, icons, tra
 
     watcher.start();
 
-    return { quit, testNotification };
+    return { quit, testNotification, togglePanel: () => panel.toggle() };
 }

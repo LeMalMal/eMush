@@ -134,6 +134,11 @@ function start(): void {
                 badge: path.join(staticDir, 'icons', 'badge.png'),
                 notification: path.join(staticDir, 'icons', 'notification.png'),
             },
+            mini: {
+                file: path.join(staticDir, 'mini', 'index.html'),
+                preload: path.join(distDir, 'preload', 'mini.js'),
+                devTools: config.devTools,
+            },
             trace: config.devTools,
         });
 
@@ -146,6 +151,7 @@ function start(): void {
                 zoomOut: () => gameView.zoom(-1),
                 resetZoom: () => gameView.resetZoom(),
                 toggleDevTools: () => (gameView.isVisible ? gameView.webContents : window.webContents).toggleDevTools(),
+                togglePanel: () => background?.togglePanel(),
             },
         }));
 

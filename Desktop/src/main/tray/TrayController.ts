@@ -6,6 +6,8 @@ import { AppSettings, SettingsService } from '../background/settings';
 
 export type TrayActions = {
     openWindow(): void;
+    /** The small panel next to the clock (points, countdown, chat). */
+    togglePanel(): void;
     resumeGame(): void;
     openSettings(): void;
     testNotification(): void;
@@ -45,8 +47,7 @@ export class TrayController implements StatusSink {
         this.tray = new Tray(nativeImage.createFromPath(icons.tray).resize({ width: 32, height: 32, quality: 'best' }));
         this.badge = nativeImage.createFromPath(icons.badge).resize({ width: 16, height: 16, quality: 'best' });
         this.tray.setToolTip('eMush');
-        this.tray.on('click', () => this.actions.openWindow());
-        this.tray.on('double-click', () => this.actions.openWindow());
+        this.tray.on('click', () => this.actions.togglePanel());
         window.on('focus', () => window.flashFrame(false));
         settings.onChange(() => this.rebuildMenu());
         this.rebuildMenu();
@@ -84,6 +85,7 @@ export class TrayController implements StatusSink {
 
         this.tray.setContextMenu(Menu.buildFromTemplate([
             { label: 'Ouvrir eMush', click: () => this.actions.openWindow() },
+            { label: 'Mini-panneau', click: () => this.actions.togglePanel() },
             ...(inGame ? [{ label: 'Reprendre la partie', click: () => this.actions.resumeGame() }] : []),
             { type: 'separator' },
             { label: this.snapshot ? statusLine(this.snapshot) : 'Connexion au Daedalus…', enabled: false },

@@ -59,6 +59,10 @@ The shell reuses the game's own design language (`App/src/assets/scss`), not a g
   hunters, oxygen…), chat messages (with the author and the start of the message) and death. Nothing is
   shown while the window is in front of the player. Clicking a notification opens the game.
 - **Taskbar**: a badge while chat messages are unread, a flash when a cycle, a day or an alert begins.
+- **Mini panel** (click on the notification-area icon, or Ctrl+Shift+M): the character's AP, MP, HP and
+  moral, a live countdown to the next cycle, ship alerts and the latest chat messages, plus a button to
+  open the game. It closes when the player clicks elsewhere, unless pinned: then it stays on top, can be
+  moved, and only its × closes it.
 - **Settings page** (native): notifications, background behaviour, launch with Windows and start in
   the background (installed app only), automatic game zoom and its adjustment, licences and source code.
   Settings live in `%APPDATA%/eMush/settings.json` (`SettingsService` validates every change).

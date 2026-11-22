@@ -4,7 +4,7 @@ import {
     leadingNumber, numberOrNull, stringOrNull,
 } from './json';
 import {
-    Account, Achievement, ChannelSummary, ChatMessage, CrewCharacter, CrewOffer, GameCounters, NewsArticle, NewsSummary, Page,
+    Account, Achievement, ChannelSummary, ChatMessage, CrewCharacter, Gauge, CrewOffer, GameCounters, NewsArticle, NewsSummary, Page,
     PlayerStatus, PlayerSummary, RankedShip, ShipAlert, ShipHistoryEntry, Statistic,
 } from './models';
 
@@ -52,7 +52,23 @@ export function parsePlayer(data: unknown): PlayerSummary | null {
         cycle: numberOrNull(calendar.cycle),
         nextCycleAt: dateOrNull(timer.timerCycle),
         triumph: isRecord(data.triumph) ? numberOrNull(data.triumph.quantity) : null,
+        points: {
+            actionPoints: parseGauge(data.actionPoint),
+            movementPoints: parseGauge(data.movementPoint),
+            healthPoints: parseGauge(data.healthPoint),
+            moralPoints: parseGauge(data.moralPoint),
+        },
+        room: isRecord(data.room) ? stringOrNull(data.room.name) : null,
     };
+}
+
+function parseGauge(value: unknown): Gauge | null {
+    if (!isRecord(value)) {
+        return null;
+    }
+    const quantity = numberOrNull(value.quantity);
+
+    return quantity === null ? null : { value: quantity, max: numberOrNull(value.max) };
 }
 
 export function parseNewsSummary(item: unknown): NewsSummary | null {
@@ -240,10 +256,13 @@ export function parseMessages(data: unknown): ChatMessage[] {
             return [];
         }
         const author = isRecord(row.character) ? stringOrNull(row.character.value) ?? stringOrNull(row.character.key) : null;
+        const authorKey = isRecord(row.character) && typeof row.character.key === 'string' && CHARACTER_KEY.test(row.character.key) ? row.character.key : null;
 
         return [{
             id: row.id,
             author: author ?? 'NERON',
+            authorKey,
+            date: stringOrNull(row.date),
             text: toPlainText(stringOrNull(row.message) ?? ''),
             unread: booleanOr(row.isUnread, false),
             replies: parseMessages(row.child),

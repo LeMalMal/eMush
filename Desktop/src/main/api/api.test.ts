@@ -37,6 +37,8 @@ describe('parsePlayer', () => {
         expect(parsePlayer(SAMPLE_PLAYER_IN_GAME)).toEqual({
             id: 812, shipId: 77, characterKey: 'jin_su', characterName: 'Jin-Su', status: 'in_game',
             day: 2, cycle: 3, nextCycleAt: new Date('2026-11-21T23:00:00Z'), triumph: 12,
+            points: { actionPoints: { value: 4, max: 12 }, movementPoints: { value: 10, max: 12 }, healthPoints: null, moralPoints: null },
+            room: 'Pont',
         });
     });
 

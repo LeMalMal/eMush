@@ -392,3 +392,34 @@ dialog .actions { display: flex; gap: 10px; justify-content: flex-end; margin-to
 .stepper { display: flex; align-items: center; gap: 10px; }
 .stepper .btn { width: 34px; padding-inline: 0; font-size: 18px; }
 .stepper .label { min-width: 150px; text-align: center; }
+
+/* ---------- mini panel (next to the clock) ---------- */
+body.mini { overflow: hidden; background: var(--space); }
+.mini-panel { height: 100vh; display: flex; flex-direction: column; gap: 10px; padding: 12px 14px 14px; }
+.mini-head { display: flex; align-items: center; gap: 10px; -webkit-app-region: drag; user-select: none; }
+.mini-head button { -webkit-app-region: no-drag; }
+.mini-face { width: 32px; height: 32px; image-rendering: pixelated; flex: none; }
+.mini-titles { flex: 1; min-width: 0; display: grid; }
+.mini-titles b { font: 16px var(--font-title); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mini-icon { width: 26px; height: 26px; border: 0; background: var(--slightly-deep-blue); color: var(--light-cyan); font: 15px var(--font-pixel); box-shadow: inset 0 0 0 1px var(--slot-edge); }
+.mini-icon:hover, .mini-icon.on { color: #fff; background: var(--tip-edge); }
+.mini-cycle { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; }
+.mini-countdown { font: 22px var(--font-title); font-variant-numeric: tabular-nums; }
+.mini-points { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+.mini-point { display: grid; justify-items: center; gap: 2px; padding: 6px 2px; }
+.mini-point b { font: 15px var(--font-title); }
+.mini-point span { font: 11px var(--font-pixel); color: var(--bright-cyan); }
+.mini-alerts { display: flex; flex-wrap: wrap; gap: 6px; }
+.mini-chat-box { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 8px; }
+.mini-chat-title { display: flex; justify-content: space-between; align-items: center; }
+.mini-chat { list-style: none; margin: 0; padding: 0 4px 0 0; overflow-y: auto; display: grid; gap: 6px; align-content: start; }
+.mini-chat li { display: grid; grid-template-columns: 24px 1fr; gap: 8px; padding: 6px 8px; background: rgba(9, 10, 97, .55); box-shadow: inset 0 0 0 1px rgba(57, 101, 251, .35); }
+.mini-chat li.reply { margin-left: 18px; }
+.mini-chat li.unread { box-shadow: inset 3px 0 0 var(--cyan), inset 0 0 0 1px rgba(57, 101, 251, .6); }
+.mini-avatar { width: 24px; height: 24px; image-rendering: pixelated; }
+.mini-meta { display: flex; justify-content: space-between; gap: 8px; font-size: 12px; color: var(--soft); }
+.mini-meta b { color: var(--cyan); font-weight: 700; }
+.mini-chat p { font-size: 13px; line-height: 1.4; word-break: break-word; }
+.mini-empty { padding: 8px 0; }
+.mini-foot { flex: none; }
+.mini .state { padding: 30px 10px; }
