@@ -61,6 +61,10 @@ The shell reuses the game's own design language (`App/src/assets/scss`), not a g
   minute for the chat, then raises Windows notifications for new cycles, new days, ship alerts (fire,
   hunters, oxygen…), chat messages (with the author and the start of the message) and death. Nothing is
   shown while the window is in front of the player. Clicking a notification opens the game.
+- **Live chat**: the web game has no live updates, so the client reloads its chat (the game's own
+  `communication/loadAlivePlayerChannels` action) when the watch finds new messages and when the player
+  comes back to the window, never while a message is being written (`src/main/shell/refreshGameChat.ts`).
+  On the game page, the chat is checked every 30 seconds.
 - **Taskbar**: a badge while chat messages are unread, a flash when a cycle, a day or an alert begins.
 - **Mini panel** (click on the notification-area icon, or Ctrl+Shift+M): the character's AP, MP, HP and
   moral, a live countdown to the next cycle, the ship's gauges (oxygen, fuel, hull, plasma shield, crew

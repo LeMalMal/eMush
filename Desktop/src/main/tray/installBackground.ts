@@ -4,6 +4,7 @@ import { statusLine } from '../background/events';
 import { GameSnapshot, PreviewLatestMessage, TakeGameSnapshot } from '../background/GameSnapshot';
 import { GameWatcher } from '../background/GameWatcher';
 import { SettingsService } from '../background/settings';
+import { FocusRefreshThrottle } from '../shell/refreshGameChat';
 import { ShellNavigator } from '../shell/ShellNavigator';
 import { ElectronNotifier } from './ElectronNotifier';
 import { TrayController } from './TrayController';
@@ -18,6 +19,8 @@ export type BackgroundDependencies = {
     icons: { tray: string; badge: string; notification: string };
     /** The small panel next to the clock. */
     mini: { file: string; preload: string; devTools: boolean };
+    /** The web game, whose chat is reloaded when new messages arrive (it has no live updates). */
+    game: { readonly isShowingGame: boolean; refreshChat(): Promise<unknown> };
     /** Logs every check (development builds). */
     trace: boolean;
 };
@@ -32,8 +35,9 @@ export type Background = {
  * Keeps eMush alive in the background: notification-area icon, close/minimize to the tray,
  * and the game watch that raises Windows notifications for cycles, days, alerts and chat messages.
  */
-export function installBackground({ window, api, navigator, settings, icons, mini, trace }: BackgroundDependencies): Background {
+export function installBackground({ window, api, navigator, settings, icons, mini, game, trace }: BackgroundDependencies): Background {
     let quitting = false;
+    const focusRefresh = new FocusRefreshThrottle();
 
     const openWindow = (): void => {
         if (window.isDestroyed()) {
@@ -114,6 +118,12 @@ export function installBackground({ window, api, navigator, settings, icons, min
         status,
         settings: () => settings.get(),
         isPlayerLooking: () => window.isVisible() && !window.isMinimized() && window.isFocused(),
+        isPlayerPlaying: () => window.isVisible() && !window.isMinimized() && window.isFocused() && game.isShowingGame,
+        onEvents: (events) => {
+            if (events.some((event) => event.kind === 'new-messages')) {
+                void game.refreshChat();
+            }
+        },
         schedule: (callback, delay) => {
             const timer = setTimeout(callback, delay);
             return () => clearTimeout(timer);
@@ -145,6 +155,12 @@ export function installBackground({ window, api, navigator, settings, icons, min
     window.on('minimize', () => {
         if (settings.get().minimizeToTray) {
             hideToTray();
+        }
+    });
+    // Back on the game (notification click, taskbar, tray): show what was said meanwhile.
+    window.on('focus', () => {
+        if (game.isShowingGame && focusRefresh.execute(Date.now())) {
+            void game.refreshChat();
         }
     });
     window.on('show', () => watcher.checkNow());

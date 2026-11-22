@@ -4,6 +4,7 @@ import { installNavigationGuards } from '../navigation/installNavigationGuards';
 import { NavigationPolicy } from '../navigation/NavigationPolicy';
 import { SettingsService } from '../background/settings';
 import { fitGameZoom, GAME_MODE_CSS, GAME_ZOOM_STEP, isGamePage, manualGameZoom } from './gameMode';
+import { ChatRefreshResult, REFRESH_GAME_CHAT } from './refreshGameChat';
 import { WebViewPort } from './ShellNavigator';
 
 /** Height of the shell's navigation bar, in CSS pixels (must match --nav-height in shell.css). */
@@ -155,6 +156,22 @@ export class GameView implements WebViewPort {
         }
 
         return this.webContents.executeJavaScript(CLICK_WEB_LOGIN_BUTTON).then((clicked) => clicked === true, () => false);
+    }
+
+    /** True while the player has the game page itself on screen (not a native page, not the forum). */
+    get isShowingGame(): boolean {
+        return this.visible && this.isOnGamePage();
+    }
+
+    /** Asks the web game to reload its chat (see refreshGameChat.ts). Does nothing off the game page. */
+    async refreshChat(): Promise<ChatRefreshResult | 'off-game'> {
+        if (!this.isOnGamePage() || this.webContents.isLoading()) {
+            return 'off-game';
+        }
+        const result = await this.webContents.executeJavaScript(REFRESH_GAME_CHAT).catch(() => 'unavailable') as ChatRefreshResult;
+        this.trace(`chat ${result}`, this.webContents.getURL());
+
+        return result;
     }
 
     /** Forgets the page (after logout), so no state of the previous session stays visible. */

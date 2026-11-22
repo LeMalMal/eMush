@@ -139,6 +139,7 @@ function start(): void {
                 preload: path.join(distDir, 'preload', 'mini.js'),
                 devTools: config.devTools,
             },
+            game: gameView,
             trace: config.devTools,
         });
 

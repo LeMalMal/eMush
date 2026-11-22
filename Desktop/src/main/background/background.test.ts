@@ -6,7 +6,7 @@ import { EmushApi } from '../api/EmushApi';
 import { FakeGameServer, SAMPLE_ACCOUNT, SAMPLE_PLAYER_IN_GAME } from '../api/FakeGameServer';
 import { detectEvents, notificationText, shouldNotify, statusLine } from './events';
 import { AliveSnapshot, GameSnapshot, PreviewLatestMessage, TakeGameSnapshot } from './GameSnapshot';
-import { CHAT_CHECK_INTERVAL_MS, GameWatcher, nextCheckDelay, Notifier, StatusSink } from './GameWatcher';
+import { CHAT_CHECK_INTERVAL_MS, GameWatcher, nextCheckDelay, Notifier, PLAYING_CHAT_CHECK_INTERVAL_MS, StatusSink } from './GameWatcher';
 import { DEFAULT_SETTINGS, JsonFileSettingsStore, NotificationSettings, parseSettings, SettingsService } from './settings';
 
 const server = new URL('https://emush.eternaltwin.org');
@@ -108,6 +108,10 @@ describe('nextCheckDelay', () => {
 
     it('checks the chat every minute otherwise', () => {
         expect(nextCheckDelay(alive({ nextCycleAt: new Date('2026-11-22T14:00:00Z') }), now)).toBe(CHAT_CHECK_INTERVAL_MS);
+    });
+
+    it('checks the chat twice as often while the player is on the game page', () => {
+        expect(nextCheckDelay(alive({ nextCycleAt: new Date('2026-11-22T14:00:00Z') }), now, true)).toBe(PLAYING_CHAT_CHECK_INTERVAL_MS);
     });
 
     it('never checks in a tight loop when the cycle is late', () => {
@@ -215,6 +219,34 @@ describe('GameWatcher', () => {
 
         expect(notifier.sent).toEqual([]);
         expect(status.updates.at(-1)).toMatchObject({ cycle: 3 });
+        watcher.stop();
+    });
+
+    it('reports new messages even while the player is looking, so the game chat can be reloaded', async () => {
+        const seen: string[][] = [];
+        const scheduler = new ManualScheduler();
+        const nextCycleAt = new Date('2026-11-22T17:00:00Z');
+        const snapshots = [alive({ nextCycleAt }), alive({ nextCycleAt, unread: 33 })];
+        let index = 0;
+        const watcher = new GameWatcher({
+            takeSnapshot: async () => snapshots[Math.min(index++, snapshots.length - 1)],
+            notifier: new FakeNotifier(),
+            status: new FakeStatus(),
+            settings: () => DEFAULT_SETTINGS,
+            isPlayerLooking: () => true,
+            isPlayerPlaying: () => true,
+            onEvents: (events) => seen.push(events.map((event) => event.kind)),
+            schedule: scheduler.schedule,
+            now: () => new Date('2026-11-22T14:00:00Z'),
+        });
+
+        watcher.start();
+        await new Promise((resolve) => setTimeout(resolve, 0));
+        scheduler.run();
+        await new Promise((resolve) => setTimeout(resolve, 0));
+
+        expect(seen).toEqual([['new-messages']]);
+        expect(scheduler.delays.at(-1)).toBe(PLAYING_CHAT_CHECK_INTERVAL_MS);
         watcher.stop();
     });
 

@@ -3,6 +3,8 @@ import { GameSnapshot, MessagePreview } from './GameSnapshot';
 import { NotificationSettings } from './settings';
 
 export const CHAT_CHECK_INTERVAL_MS = 60_000;
+/** While the player has the game in front of them, new messages should show up quickly. */
+export const PLAYING_CHAT_CHECK_INTERVAL_MS = 30_000;
 /** Checks right after the cycle changes, leaving the server a few seconds to compute it. */
 export const AFTER_CYCLE_DELAY_MS = 5_000;
 const IDLE_INTERVAL_MS = 5 * 60_000;
@@ -30,19 +32,27 @@ export type GameWatcherPorts = {
     previewMessage?(channelIds: number[]): Promise<MessagePreview | null>;
     /** True while the player has the window in front of them: no toast then. */
     isPlayerLooking(): boolean;
+    /** True while the player has the game page itself in front of them: the chat is checked more often. */
+    isPlayerPlaying?(): boolean;
+    /** Every change found, whether or not a notification is shown (to refresh the game's chat...). */
+    onEvents?(events: WatchEvent[]): void;
     schedule: Scheduler;
     now(): Date;
 };
 
-/** When to check again: right after the next cycle, and at least every minute for the chat. */
-export function nextCheckDelay(snapshot: GameSnapshot, now: Date): number {
+/**
+ * When to check again: right after the next cycle, and at least every minute for the chat
+ * (every 30 seconds while the player is on the game page).
+ */
+export function nextCheckDelay(snapshot: GameSnapshot, now: Date, playing = false): number {
     switch (snapshot.state) {
         case 'alive': {
+            const chatInterval = playing ? PLAYING_CHAT_CHECK_INTERVAL_MS : CHAT_CHECK_INTERVAL_MS;
             if (snapshot.nextCycleAt === null) {
-                return CHAT_CHECK_INTERVAL_MS;
+                return chatInterval;
             }
             const untilCycle = snapshot.nextCycleAt.getTime() - now.getTime() + AFTER_CYCLE_DELAY_MS;
-            return Math.max(AFTER_CYCLE_DELAY_MS, Math.min(CHAT_CHECK_INTERVAL_MS, untilCycle));
+            return Math.max(AFTER_CYCLE_DELAY_MS, Math.min(chatInterval, untilCycle));
         }
         case 'unreachable': return RETRY_INTERVAL_MS;
         default: return IDLE_INTERVAL_MS;
@@ -105,7 +115,8 @@ export class GameWatcher {
         } finally {
             this.checking = false;
             if (this.running) {
-                this.cancelNext = this.ports.schedule(() => void this.check(), nextCheckDelay(snapshot, this.ports.now()));
+                const playing = this.ports.isPlayerPlaying?.() ?? false;
+                this.cancelNext = this.ports.schedule(() => void this.check(), nextCheckDelay(snapshot, this.ports.now(), playing));
             }
         }
     }
@@ -114,6 +125,7 @@ export class GameWatcher {
         if (events.length === 0) {
             return;
         }
+        this.ports.onEvents?.(events);
         if (events.some((event) => event.kind !== 'new-messages')) {
             this.ports.status.attention();
         }
