@@ -90,6 +90,8 @@ export const SAMPLE_PLAYER_IN_GAME = {
         shield: { quantity: 0, name: 'Bouclier plasma', description: '' },
         humanPlayerAlive: 12,
         mushPlayerAlive: 2,
+        inOrbitPlanet: { id: 5, imageId: 3 },
+        isDaedalusTravelling: false,
         timer: { name: 'Cycle', timerCycle: '2026-11-21T23:00:00+00:00' },
         calendar: { day: 2, cycle: 3, dayName: 'Jour', cycleName: 'Cycle' },
     },

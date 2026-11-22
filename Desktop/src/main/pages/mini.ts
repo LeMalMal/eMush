@@ -3,6 +3,7 @@ import { ChatMessage, Gauge, ShipState } from '../api/models';
 import { characterFullName } from './characters';
 import { formatDayCycle } from './format';
 import { load } from './load';
+import { orbitView, OrbitView } from './orbit';
 import { Loaded } from './view';
 
 const MESSAGES_SHOWN = 14;
@@ -24,6 +25,8 @@ export type MiniView =
         nextCycleAt: string | null;
         points: MiniPoint[];
         ship: MiniShipGauge[];
+        /** Orbiting a planet or moving (nothing in open space). */
+        orbit: OrbitView | null;
         /** Titles (Commandant...) and diseases, as small tags. */
         titles: string[];
         diseases: string[];
@@ -125,6 +128,7 @@ export class LoadMiniPanel {
                     ...point('moral', 'Moral', moralPoints),
                 ],
                 ship: shipGauges(player.ship),
+                orbit: orbitView(player.ship.position),
                 titles: player.titles,
                 diseases: player.diseases,
                 alerts: alerts.map(({ name: alertName, description }) => ({ name: alertName, description })),

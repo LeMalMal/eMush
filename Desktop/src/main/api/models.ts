@@ -47,7 +47,14 @@ export type ShipState = {
     hull: number | null;
     shield: number | null;
     crewAlive: number | null;
+    position: ShipPosition;
 };
+
+/**
+ * Where the Daedalus is: orbiting a planet (the API sends only its picture id, the name stays at the
+ * Astro terminal), moving (a travel lasts until the next cycle), or in open space.
+ */
+export type ShipPosition = { state: 'orbit'; planetImageId: number | null } | { state: 'travelling' } | { state: 'space' };
 
 /** Why a character's adventure ended. `name` is the long sentence, `shortName` the table label. */
 export type EndCause = { key: string; name: string; shortName: string; description: string };

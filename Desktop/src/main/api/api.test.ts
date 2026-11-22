@@ -43,7 +43,7 @@ describe('parsePlayer', () => {
             isMush: false,
             titles: ['Commandant'],
             diseases: ['Grippe'],
-            ship: { oxygen: 24, fuel: 9, hull: 87, shield: 0, crewAlive: 14 },
+            ship: { oxygen: 24, fuel: 9, hull: 87, shield: 0, crewAlive: 14, position: { state: 'orbit', planetImageId: 3 } },
         });
     });
 
@@ -55,6 +55,15 @@ describe('parsePlayer', () => {
 
     it('rejects an unknown status', () => {
         expect(parsePlayer({ ...SAMPLE_PLAYER_IN_GAME, gameStatus: 'starting_soon' })).toBeNull();
+    });
+
+    it('reads where the Daedalus is: orbiting a planet, moving, or in open space', () => {
+        const positionOf = (daedalus: Record<string, unknown>) =>
+            parsePlayer({ ...SAMPLE_PLAYER_IN_GAME, daedalus: { ...SAMPLE_PLAYER_IN_GAME.daedalus, inOrbitPlanet: null, ...daedalus } })?.ship.position;
+
+        expect(positionOf({ inOrbitPlanet: { id: 5, imageId: 3 }, isDaedalusTravelling: true })).toEqual({ state: 'orbit', planetImageId: 3 });
+        expect(positionOf({ isDaedalusTravelling: true })).toEqual({ state: 'travelling' });
+        expect(positionOf({ isDaedalusTravelling: false })).toEqual({ state: 'space' });
     });
 });
 

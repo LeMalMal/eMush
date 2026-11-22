@@ -23,7 +23,7 @@ is modified.
 
 | Entry | Drawn by | Content |
 | --- | --- | --- |
-| Accueil | client | Adaptive main button (log in / read the rules / find a crew / resume with day, cycle and next-cycle countdown / write your epitaph), latest news, live counters, community shortcuts. |
+| Accueil | client | Adaptive main button (log in / read the rules / find a crew / resume with day, cycle, next-cycle countdown and the Daedalus in orbit or moving / write your epitaph), latest news, live counters, community shortcuts. |
 | ▶ Jouer | client or web | Leads to the right place: login, rules, **crew selection** (client) or the game (web). |
 | Trouver un équipage | client | Boarding ship per language (FR/EN/ES), who is aboard (x/16), character cards with level, story and skills. Boarding is always confirmed in a dialog. |
 | Actualités | client | Paginated news and full articles, rendered from the game's markup. |
@@ -77,7 +77,8 @@ The shell reuses the game's own design language (`App/src/assets/scss`), not a g
 - **Taskbar**: a badge while chat messages are unread, a flash when a cycle, a day or an alert begins.
 - **Mini panel** (click on the notification-area icon, or Ctrl+Shift+M): the character's AP, MP, HP and
   moral, a live countdown to the next cycle, the ship's gauges (oxygen, fuel, hull, plasma shield, crew
-  alive; low levels in red), titles and diseases, ship alerts and the latest chat messages, plus a button
+  alive; low levels in red), the planet in orbit (its picture; the game gives its name only at the Astro
+  terminal) or the Daedalus moving, titles and diseases, ship alerts and the latest chat messages, plus a button
   to open the game (or to write the epitaph once the character is dead). It closes when the player clicks elsewhere, unless pinned: then it stays on top, can be
   moved, and only its × closes it.
 - **Settings page** (native): notifications, background behaviour, launch with Windows and start in

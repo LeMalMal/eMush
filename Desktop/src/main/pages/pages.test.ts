@@ -64,7 +64,8 @@ describe('LoadHome', () => {
         expect(home.status).toBe('alive');
         expect(home.primary.label).toBe('Reprendre la partie');
         expect(home.ship.title).toBe('Jour 2 · Cycle 3');
-        expect(home.ship.tags.map((t) => t.label)).toEqual(['Kim Jin-Su · en vie', 'Prochain cycle dans 1 h 42']);
+        expect(home.ship.tags.map((t) => t.label)).toEqual(['Kim Jin-Su · en vie', 'Prochain cycle dans 1 h 42', 'En orbite']);
+        expect(home.ship.tags[2].image).toBe('img/planets/3.png');
     });
 
     it('asks a dead player to write the epitaph', async () => {

@@ -69,6 +69,11 @@ function render(view: MiniView): void {
                 title: gauge.low ? `${gauge.label} : niveau bas` : gauge.label,
             }, icon(gauge.icon), h('b', {}, gauge.value))))
             : null,
+        view.orbit
+            ? h('section', { class: 'mini-orbit', 'aria-label': 'Position du Daedalus' },
+                view.orbit.image ? h('img', { src: view.orbit.image, alt: '' }) : null,
+                h('div', {}, h('b', {}, view.orbit.title), h('span', {}, view.orbit.hint)))
+            : null,
         view.titles.length > 0 || view.diseases.length > 0
             ? h('section', { class: 'mini-alerts' },
                 ...view.titles.map((title) => h('span', { class: 'tag ok' }, title)),

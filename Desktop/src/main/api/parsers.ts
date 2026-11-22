@@ -5,7 +5,7 @@ import {
 } from './json';
 import {
     Account, Achievement, ChannelSummary, ChatMessage, ClosedCrewMember, ClosedShip, CrewCharacter, CrewOffer, DeathReport, DeathReportCrewmate,
-    EndCause, GameCounters, Gauge, NewsArticle, NewsSummary, Page, PlayerStatus, PlayerSummary, RankedShip, ShipAlert, ShipHistoryEntry, ShipState,
+    EndCause, GameCounters, Gauge, NewsArticle, NewsSummary, Page, PlayerStatus, PlayerSummary, RankedShip, ShipAlert, ShipHistoryEntry, ShipPosition, ShipState,
     Statistic,
 } from './models';
 
@@ -79,7 +79,16 @@ function parseShipState(daedalus: unknown): ShipState {
         hull: quantity(ship.hull),
         shield: quantity(ship.shield),
         crewAlive: humans === null ? null : humans + (mush ?? 0),
+        position: parseShipPosition(ship),
     };
+}
+
+function parseShipPosition(ship: Record<string, unknown>): ShipPosition {
+    if (isRecord(ship.inOrbitPlanet)) {
+        return { state: 'orbit', planetImageId: numberOrNull(ship.inOrbitPlanet.imageId) };
+    }
+
+    return ship.isDaedalusTravelling === true ? { state: 'travelling' } : { state: 'space' };
 }
 
 /** Plain names of a list of `{ name }` objects (titles, diseases...). */

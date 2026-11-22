@@ -20,7 +20,7 @@ describe('flattenMessages', () => {
 
 describe('shipGauges', () => {
     it('flags the gauges that are running low, and skips the ones the API did not send', () => {
-        const gauges = shipGauges({ oxygen: 6, fuel: null, hull: 25, shield: 30, crewAlive: null });
+        const gauges = shipGauges({ oxygen: 6, fuel: null, hull: 25, shield: 30, crewAlive: null, position: { state: 'space' } });
 
         expect(gauges.map((gauge) => [gauge.icon, gauge.low])).toEqual([['oxygen', true], ['hull', true], ['shield', false]]);
     });
@@ -55,6 +55,7 @@ describe('LoadMiniPanel', () => {
                     { icon: 'shield_off', label: 'Bouclier', value: '0', low: false },
                     { icon: 'crew', label: 'En vie', value: '14', low: false },
                 ],
+                orbit: { title: 'En orbite', hint: 'Nom et secteurs au Terminal Astro, sur le Pont.', image: 'img/planets/3.png' },
                 titles: ['Commandant'],
                 diseases: ['Grippe'],
                 alerts: [{ name: 'Incendie', description: 'En Cuisine.' }],

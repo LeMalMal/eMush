@@ -93,3 +93,9 @@ for (const [key, file] of Object.entries(portraits)) {
 }
 // NERON writes in the chat too: the game shows it with this small head.
 copy(join(images, 'comms', 'neron-mini.png'), join(img, 'heads', 'neron.png'));
+
+// Planet in orbit (mini panel, home page), with the picture ids of src/main/pages/orbit.ts.
+for (const planet of ['0', '1', '2', '3', '4', '2048']) {
+    copy(join(images, 'astro', `planet_${planet}_small.png`), join(img, 'planets', `${planet}.png`));
+}
+copy(join(images, 'astro', 'planet_unknown.png'), join(img, 'planets', 'unknown.png'));

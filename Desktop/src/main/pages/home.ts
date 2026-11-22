@@ -3,7 +3,8 @@ import { Account, GameCounters, NewsSummary, PlayerSummary } from '../api/models
 import { characterFullName } from './characters';
 import { formatCountdown, formatDate, formatDayCycle, formatNumber } from './format';
 import { load } from './load';
-import { AccountView, HomeView, Loaded, NewsCard } from './view';
+import { orbitView } from './orbit';
+import { AccountView, HomeView, Loaded, NewsCard, Tag } from './view';
 
 const NEWS_ON_HOME = 3;
 
@@ -91,6 +92,7 @@ export function buildHomeView({ account, player, news, counters, now }: HomeInpu
                 tags: [
                     { label: `${name} · en vie`, tone: 'ok' },
                     ...(nextCycle ? [{ label: `Prochain cycle dans ${nextCycle}`, tone: 'neutral' as const }] : []),
+                    ...orbitTags(player),
                 ],
                 text: 'L\'équipage compte sur toi. Chaque cycle te rend des points d\'action : ne les laisse pas se perdre.',
                 characterKey: player.characterKey,
@@ -111,6 +113,16 @@ export function buildHomeView({ account, player, news, counters, now }: HomeInpu
         },
         primary: { label: 'Écrire ton épitaphe', command: 'play' },
     };
+}
+
+/** "En orbite" with the planet's picture, or "En déplacement": the Daedalus' position at a glance. */
+function orbitTags(player: PlayerSummary): Tag[] {
+    const orbit = orbitView(player.ship.position);
+    if (orbit === null) {
+        return [];
+    }
+
+    return [{ label: orbit.title, tone: 'neutral', ...(orbit.image ? { image: orbit.image } : {}) }];
 }
 
 /** The signed-in player's name for the navigation bar (null when signed out). */

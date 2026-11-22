@@ -5,7 +5,8 @@ import { AppSettings, GameLanguage } from '../background/settingsModel';
 // View models sent to the shell page over IPC: plain, JSON-serializable, already formatted for display.
 
 export type Tone = 'neutral' | 'ok' | 'alert';
-export type Tag = { label: string; tone: Tone };
+/** A small label; `image`: a picture shown before the text (a planet...). */
+export type Tag = { label: string; tone: Tone; image?: string };
 export type Pager = { page: number; pageCount: number };
 
 /** Every page load either succeeds or explains what went wrong; the shell then offers a retry. */

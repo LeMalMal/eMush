@@ -60,7 +60,7 @@ export function sectionTitle(text: string, id?: string, action?: HTMLElement | n
 }
 
 export function tagElement(tag: Tag): HTMLElement {
-    return h('span', { class: `tag ${tag.tone}` }, tag.label);
+    return h('span', { class: `tag ${tag.tone}` }, tag.image ? h('img', { class: 'tag-image', src: tag.image, alt: '' }) : null, tag.label);
 }
 
 export function pagerControl(pager: Pager, onPage: (page: number) => void): HTMLElement | null {
