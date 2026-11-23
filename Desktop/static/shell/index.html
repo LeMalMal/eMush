@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src 'self'; style-src 'self'; font-src 'self'; script-src 'self'">
+    <title>eMush</title>
+    <link rel="stylesheet" href="shell.css">
+</head>
+<body>
+<header class="nav">
+    <button class="brand" type="button" data-nav="home" aria-label="Accueil">
+        <img src="img/logo.png" alt="">
+    </button>
+    <nav class="tabs" aria-label="Menu principal">
+        <button class="tab" type="button" data-nav="home" data-section="home">Accueil</button>
+        <button class="tab play" type="button" data-command="play" data-section="play">Jouer</button>
+        <button class="tab" type="button" data-nav="news" data-section="news">Actualités</button>
+        <button class="tab" type="button" data-nav="forum" data-section="forum">Forum</button>
+        <button class="tab" type="button" data-nav="ranking" data-section="ranking">Classements</button>
+        <button class="tab" type="button" data-nav="profile" data-section="profile">Profil</button>
+    </nav>
+    <div class="nav-side">
+        <button class="nav-link" type="button" data-nav="rules" data-section="rules">Règles</button>
+        <button class="nav-link" type="button" data-command="wiki" title="S'ouvre dans ton navigateur">Wiki ↗</button>
+        <button class="nav-link" type="button" data-nav="settings" data-section="settings">Réglages</button>
+        <button class="user-pill" id="user-pill" type="button" data-nav="profile" hidden></button>
+        <button class="btn red login-pill" id="login-pill" type="button" data-command="login" hidden>Se connecter</button>
+    </div>
+</header>
+<main id="page" class="page" tabindex="-1"></main>
+<script src="../../shell/shell.js"></script>
+</body>
+</html>

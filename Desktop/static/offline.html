@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'">
+    <title>eMush — hors ligne</title>
+    <style>
+        :root { color-scheme: dark; }
+        body {
+            margin: 0;
+            min-height: 100vh;
+            display: grid;
+            place-items: center;
+            background: #0f0f43;
+            color: #e8ecff;
+            font-family: "Segoe UI", system-ui, sans-serif;
+            text-align: center;
+        }
+        main { max-width: 32rem; padding: 2rem; }
+        h1 { font-size: 1.6rem; margin-bottom: .5rem; }
+        p { color: #aab3df; line-height: 1.5; }
+        #error { font-family: Consolas, monospace; font-size: .85rem; opacity: .7; }
+        button {
+            margin-top: 1.5rem;
+            padding: .7rem 1.6rem;
+            border: 0;
+            border-radius: 4px;
+            background: #ff4e64;
+            color: white;
+            font-size: 1rem;
+            cursor: pointer;
+        }
+        button:hover { background: #ff6b7e; }
+    </style>
+</head>
+<body>
+<main>
+    <h1>Impossible de joindre le Daedalus</h1>
+    <p>Le serveur eMush ne répond pas. Vérifie ta connexion Internet, puis réessaie.</p>
+    <p id="error"></p>
+    <button id="retry" type="button">Réessayer</button>
+</main>
+<script>
+    const params = new URLSearchParams(location.search);
+    document.getElementById('error').textContent = params.get('error') ?? '';
+    document.getElementById('retry').addEventListener('click', () => {
+        const retry = params.get('retry');
+        if (retry !== null) {
+            location.href = retry;
+        }
+    });
+</script>
+</body>
+</html>

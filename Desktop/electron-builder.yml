@@ -1,0 +1,36 @@
+# Packaging configuration. `npm run dist:dir` produces release/win-unpacked/,
+# which is the folder to upload to Steam (SteamPipe). `npm run dist` also builds an installer.
+appId: io.github.lemalmal.emush-desktop # Placeholder: to replace by the eMush team's identifier.
+productName: eMush
+copyright: AGPL-3.0-or-later (code) / CC-BY-NC-SA-4.0 (Motion Twin and eMush assets)
+
+directories:
+  output: release
+  buildResources: build
+
+files:
+  - dist/**/*
+  - package.json
+  - "!dist/**/*.map"
+
+# The native Steam module (and its steam_api64.dll) cannot be loaded from inside the asar archive.
+asarUnpack:
+  - node_modules/steamworks.js/**/*
+
+extraResources:
+  - from: ../App/public/pwa-512x512.png
+    to: icon.png
+  - from: ../LICENSE
+    to: LICENSE
+  - from: ../App/src/assets/LICENSE
+    to: LICENSE-assets
+
+win:
+  icon: ../App/public/pwa-512x512.png
+  target:
+    - nsis
+
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  shortcutName: eMush
