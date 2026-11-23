@@ -1,4 +1,4 @@
-import type { ChatTextSize } from '../background/settingsModel';
+import type { ChatTextSize, MovementLogMode } from '../background/settingsModel';
 
 /**
  * Restyling of the web game's chat (App/src/components/Game/Communications), injected as CSS on the
@@ -115,8 +115,42 @@ export function chatTextSizeCss(size: ChatTextSize): string {
     return scale === 100 ? '' : `.comms-panel .chatbox, .comms-panel .chat-input .input-area { font-size: ${scale}% !important; }`;
 }
 
+/**
+ * The room logs marked as comings and goings (markChatMessages.ts): one tight, small and dimmed line
+ * (full again under the mouse), or hidden. Nothing for "normal".
+ */
+export function movementLogsCss(mode: MovementLogMode): string {
+    const movement = '.comms-panel .chatbox .log[data-emush-movement]';
+    switch (mode) {
+        case 'compact':
+            return [
+                `${movement} { padding-top: 1px !important; padding-bottom: 1px !important; margin: 0 !important; border-bottom-color: transparent !important; opacity: .55; }`,
+                `${movement} .text-log { font-size: .8em !important; }`,
+                `${movement}:hover { opacity: 1; }`,
+            ].join('\n');
+        case 'hidden':
+            return `${movement} { display: none !important; }`;
+        default:
+            return '';
+    }
+}
+
 /** Widest the game may grow on a wide window: the extra width goes to the chat column. */
 export const LARGE_GAME_MAX_WIDTH_PX = 1440;
+
+/** The chat panel filling its column: tabs on top, the messages stretched, the buttons in one row at the bottom. */
+const FILLING_CHAT_RULES = `
+.game-content .comms-panel-container { display: flex !important; flex-direction: column !important; min-height: 0; }
+.game-content .comms-panel {
+    flex: 1 1 auto !important; min-height: 0 !important;
+    display: grid !important; grid-template-columns: 1fr; grid-auto-columns: auto; grid-template-rows: auto minmax(0, 1fr) auto;
+}
+.game-content .comms-panel > .comms-panel-banner { grid-row: 1; grid-column: 1 / span 5; }
+.game-content .comms-panel > .tab-content { grid-row: 2; grid-column: 1 / span 5; display: flex !important; flex-direction: column !important; min-height: 0 !important; max-height: none !important; }
+.game-content .comms-panel > .action-button { grid-row: 3; justify-self: end; float: none !important; margin: 4px 0 0 4px; }
+.game-content .comms-panel .chatbox-container { flex: 1 1 0 !important; flex-direction: column !important; min-height: 0 !important; }
+.game-content .comms-panel .chatbox { flex: 1 1 0 !important; height: auto !important; min-height: 0 !important; max-height: none !important; }
+`;
 
 /**
  * Large chat: the chat column fills the full height of the game (next to the room and the projects)
@@ -126,15 +160,7 @@ export const LARGE_GAME_MAX_WIDTH_PX = 1440;
 export const LARGE_CHAT_CSS = `
 @media screen and (min-width: ${WIDE_LAYOUT_MIN_WIDTH_PX}px) {
     .box-container:has(> .game-content) { max-width: ${LARGE_GAME_MAX_WIDTH_PX}px !important; }
-    .game-content .comms-panel-container { display: flex !important; flex-direction: column !important; min-height: 0; }
-    .game-content .comms-panel {
-        flex: 1 1 auto !important; min-height: 0 !important;
-        display: grid !important; grid-template-columns: 1fr; grid-auto-columns: auto; grid-template-rows: auto minmax(0, 1fr) auto;
-    }
-    .game-content .comms-panel > .comms-panel-banner { grid-row: 1; grid-column: 1 / span 5; }
-    .game-content .comms-panel > .tab-content { grid-row: 2; grid-column: 1 / span 5; display: flex !important; flex-direction: column !important; min-height: 0 !important; max-height: none !important; }
-    .game-content .comms-panel > .action-button { grid-row: 3; justify-self: end; float: none !important; margin: 4px 0 0 4px; }
-    .game-content .comms-panel .chatbox-container { flex: 1 1 0 !important; flex-direction: column !important; min-height: 0 !important; }
-    .game-content .comms-panel .chatbox { flex: 1 1 0 !important; height: auto !important; min-height: 0 !important; max-height: none !important; }
+${FILLING_CHAT_RULES}
 }
 `;
+

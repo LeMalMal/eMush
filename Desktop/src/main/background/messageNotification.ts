@@ -3,7 +3,7 @@ import { comparableName, mentionsName } from './names';
 import { AppSettings } from './settingsModel';
 
 /** An unread chat message, read when new messages arrive (newest first). `text` is plain text. */
-export type UnreadMessage = { channelId: number; scope: string; author: string; text: string };
+export type UnreadMessage = { channelId: number; scope: string; author: string; authorKey: string | null; text: string };
 
 type NewMessagesEvent = Extract<WatchEvent, { kind: 'new-messages' }>;
 type MessageSettings = Pick<AppSettings, 'messages' | 'messagesPublic' | 'messagesPrivate' | 'messagesMush' | 'mentions'>;
@@ -31,6 +31,7 @@ export function messageNotification(event: NewMessagesEvent, messages: UnreadMes
             title: `${mention.author} parle de toi`,
             body: shorten(mention.text),
             chat: { channelId: mention.channelId, author: mention.author, text: mention.text },
+            visual: { kind: 'mention', characterKey: mention.authorKey },
         };
     }
     if (!settings.messages) {

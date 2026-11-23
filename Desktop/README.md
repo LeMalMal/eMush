@@ -60,13 +60,20 @@ The shell reuses the game's own design language (`App/src/assets/scss`), not a g
   messages and alerts, notification toggles, test notification, settings, quit.
 - **Closing the window keeps eMush running** in the notification area (setting); minimizing there is optional.
 - **Background watch** (`src/main/background/`): checks the game right after each new cycle and every
-  minute for the chat, then raises Windows notifications for new cycles, new days, ship alerts (fire,
+  minute for the chat, then raises notifications for new cycles, new days, ship alerts (fire,
   hunters, oxygen…), chat messages (with the author and the start of the message; public, private and Mush channels can each be
   muted) and death. A message naming the character ("X parle de toi") always notifies, even from a muted channel
   (setting, `src/main/background/messageNotification.ts`). Nothing is
   shown while the window is in front of the player. Clicking a notification opens the game; a message notification opens the message's channel, scrolls
   the chat to it (unfolding its thread if needed) and makes it flash, as the game marks a message read as soon
   as the mouse passes over it (`src/main/shell/openGameChannel.ts`).
+- **Notifications in the game's style** (`src/main/tray/MushNotifier.ts`, page `src/toast`): instead of the
+  Windows ones, a small window next to the clock (beside the mini panel when it is open) that never takes the
+  focus. Up to three notifications, each in the game's tooltip frame with an accent colour for its kind (green:
+  cycle and day, red: alert and death, pink: mention), a picture (the author's head, the game's alert icon,
+  the calendar), what a click opens, and a bar counting down its few seconds (paused under the mouse).
+  Windows' notification sound plays with them (setting). Unlike Windows notifications, they do not go to the
+  Action Center and do not follow "Do not disturb".
 - **Live chat**: the web game has no live updates, so the client reloads its chat (the game's own
   `communication/loadAlivePlayerChannels` action) when the watch finds new messages and when the player
   comes back to the window (`src/main/shell/refreshGameChat.ts`). On the game page, the chat is checked
@@ -80,11 +87,16 @@ The shell reuses the game's own design language (`App/src/assets/scss`), not a g
   windows. Both are settings, on by default, applied without reloading; narrow windows keep the web layout.
   The character's own messages get a green edge and the ones naming the character a pink glow (setting;
   `src/main/shell/markChatMessages.ts` marks them, with the same name rules as the "X parle de toi" notification).
+  The room logs that only tell someone came in or left (recognised by the game's French, English and Spanish
+  wording, `src/main/shell/roomLogs.ts`) are shown as the game does, as one small dimmed line (default), or hidden.
 - **Taskbar**: a badge while chat messages are unread, a flash when a cycle, a day or an alert begins.
 - **Mini panel** (click on the notification-area icon, or Ctrl+Shift+M): the character's AP, MP, HP and
   moral, a live countdown to the next cycle, the ship's gauges (oxygen, fuel, hull, plasma shield, crew
   alive; low levels in red), the planet in orbit (its picture; the game gives its name only at the Astro
-  terminal) or the Daedalus moving, titles and diseases, ship alerts and the latest chat messages, plus a button
+  terminal) or the Daedalus moving, titles and diseases, ship alerts and the chat: tabs for the public, private and Mush channels, the
+  latest messages (the character's own in green, mentions in pink; a click shows the message in the game), a field
+  to write in the channel or reply to a thread (`src/mini/composer.ts`, checked again server-side before sending),
+  refreshed as soon as new messages are found, plus a button
   to open the game (or to write the epitaph once the character is dead). It closes when the player clicks elsewhere, unless pinned: then it stays on top, can be
   moved, and only its × closes it.
 - **Settings page** (native): notifications, background behaviour, launch with Windows and start in

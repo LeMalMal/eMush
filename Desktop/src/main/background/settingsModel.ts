@@ -10,6 +10,10 @@ export type GameLanguageSetting = GameLanguage | 'auto';
 export const CHAT_TEXT_SIZES = ['small', 'normal', 'large', 'larger'] as const;
 export type ChatTextSize = typeof CHAT_TEXT_SIZES[number];
 
+/** How the "X came in / left" room logs are shown: as the game does, smaller and dimmed, or not at all. */
+export const MOVEMENT_LOG_MODES = ['normal', 'compact', 'hidden'] as const;
+export type MovementLogMode = typeof MOVEMENT_LOG_MODES[number];
+
 /** Player preferences: notifications, background behaviour, game display. */
 export type AppSettings = {
     newCycles: boolean;
@@ -21,6 +25,8 @@ export type AppSettings = {
     messagesMush: boolean;
     /** A message naming the character always notifies, even from a muted channel. */
     mentions: boolean;
+    /** The sound played with a notification (Windows' notification sound). */
+    notificationSound: boolean;
     /** Ship alerts: fire, hunters, low oxygen... */
     alerts: boolean;
     /** Closing the window keeps the game running in the notification area. */
@@ -45,6 +51,8 @@ export type AppSettings = {
     markMessages: boolean;
     /** Text size of the game's chat (messages, logs, message input); icons keep their size. */
     chatTextSize: ChatTextSize;
+    /** The room logs that only tell someone came in or left. */
+    movementLogs: MovementLogMode;
     /** Player's adjustment over the automatic zoom, in 25 % steps (-2 to +2). */
     gameZoomOffset: number;
     /** The one-time explanation shown the first time the window goes to the tray. */
@@ -63,6 +71,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
     messagesMush: true,
     mentions: true,
     alerts: true,
+    notificationSound: true,
     closeToTray: true,
     minimizeToTray: false,
     launchAtStartup: false,
@@ -74,11 +83,12 @@ export const DEFAULT_SETTINGS: AppSettings = {
     largeChat: true,
     markMessages: true,
     chatTextSize: 'normal',
+    movementLogs: 'compact',
     gameZoomOffset: 0,
     trayHintShown: false,
 };
 
-const BOOLEAN_KEYS = ['newCycles', 'newDays', 'messages', 'messagesPublic', 'messagesPrivate', 'messagesMush', 'mentions', 'alerts', 'closeToTray', 'minimizeToTray', 'launchAtStartup', 'startMinimized', 'gameAutoZoom', 'spellcheck', 'darkChat', 'largeChat', 'markMessages', 'trayHintShown'] as const;
+const BOOLEAN_KEYS = ['newCycles', 'newDays', 'messages', 'messagesPublic', 'messagesPrivate', 'messagesMush', 'mentions', 'alerts', 'notificationSound', 'closeToTray', 'minimizeToTray', 'launchAtStartup', 'startMinimized', 'gameAutoZoom', 'spellcheck', 'darkChat', 'largeChat', 'markMessages', 'trayHintShown'] as const;
 const ZOOM_OFFSET_LIMIT = 2;
 
 /** Reads settings from untrusted JSON (file or shell page). Unknown or invalid values keep their default. */
@@ -89,6 +99,9 @@ export function parseSettings(value: unknown, base: AppSettings = DEFAULT_SETTIN
         if (typeof input[key] === 'boolean') {
             settings[key] = input[key] as boolean;
         }
+    }
+    if ((MOVEMENT_LOG_MODES as readonly unknown[]).includes(input.movementLogs)) {
+        settings.movementLogs = input.movementLogs as MovementLogMode;
     }
     if ((CHAT_TEXT_SIZES as readonly unknown[]).includes(input.chatTextSize)) {
         settings.chatTextSize = input.chatTextSize as ChatTextSize;

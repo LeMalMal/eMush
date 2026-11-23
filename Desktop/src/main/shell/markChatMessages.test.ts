@@ -16,9 +16,25 @@ function fakeMessage(author: string, text: string) {
     };
 }
 
+/** A room log of the game page: the character's name in bold, then the wording, like Log.vue renders it. */
+function fakeLog(name: string, wording: string) {
+    const marks = new Set<string>();
+    const strong = { tagName: 'STRONG', textContent: name };
+    const line = { firstElementChild: strong, firstChild: strong, textContent: name + wording };
+
+    return {
+        marks,
+        setAttribute: (attribute: string) => { marks.add(attribute); },
+        hasAttribute: (attribute: string) => marks.has(attribute),
+        removeAttribute: (attribute: string) => { marks.delete(attribute); },
+        querySelector: (selector: string) => (selector === '.text-log > span' ? line : null),
+    };
+}
+
 /** Handwritten fake of the game page: its store (player), its chat messages, a MutationObserver and the next frame, both run by hand. */
 function fakeGamePage(characterName: string) {
     const messages: ReturnType<typeof fakeMessage>[] = [];
+    const logs: ReturnType<typeof fakeLog>[] = [];
     const observers: (() => void)[] = [];
     const frames: (() => void)[] = [];
     const store = { getters: { 'player/player': { character: { name: characterName } } } };
@@ -26,7 +42,7 @@ function fakeGamePage(characterName: string) {
     const document = {
         body: {},
         querySelector: (selector: string) => (selector === '#app' ? { __vue_app__: { config: { globalProperties: { $store: store } } } } : null),
-        querySelectorAll: (selector: string) => (selector === '.comms-panel .chatbox .message' ? messages : []),
+        querySelectorAll: (selector: string) => (selector === '.comms-panel .chatbox .message' ? messages : selector === '.comms-panel .chatbox .log' ? logs : []),
     };
     class FakeMutationObserver {
         constructor(callback: () => void) { observers.push(callback); }
@@ -41,7 +57,7 @@ function fakeGamePage(characterName: string) {
         frames.splice(0).forEach((frame) => frame());
     };
 
-    return { run, messages, chatChanged };
+    return { run, messages, logs, chatChanged };
 }
 
 describe('markChatMessagesScript', () => {
@@ -77,5 +93,16 @@ describe('markChatMessagesScript', () => {
 
         expect([...later.marks]).toEqual(['data-emush-mention']);
         expect(page.run()).toBe('marked');
+    });
+
+    it('marks the room logs that only tell someone came in or left', () => {
+        const page = fakeGamePage('Gioele');
+        const entered = fakeLog('Eleesha', ' est entrée.');
+        const searched = fakeLog('Eleesha', ' a fouillé la pièce mais n’a rien découvert.');
+        page.logs.push(entered, searched);
+
+        page.run();
+
+        expect([[...entered.marks], [...searched.marks]]).toEqual([['data-emush-movement'], []]);
     });
 });

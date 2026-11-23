@@ -1,8 +1,10 @@
 import { classifyChatMessage, comparableName, mentionsName } from '../background/names';
+import { isMovementLog } from './roomLogs';
 
 /**
  * Marks the character's own messages and the messages naming the character in the game's chat
- * (`data-emush-own`, `data-emush-mention` on the message), for the chat styles to show them. The marks
+ * (`data-emush-own`, `data-emush-mention` on the message), and the room logs that only tell someone
+ * came in or left (`data-emush-movement`), for the chat styles to show them. The marks
  * follow the chat as it changes (new messages, channel switch, "load more") through a MutationObserver.
  * Installed once per page; running it again only re-marks.
  */
@@ -15,6 +17,7 @@ export function markChatMessagesScript(): string {
     ${comparableName.toString()}
     ${mentionsName.toString()}
     ${classifyChatMessage.toString()}
+    ${isMovementLog.toString()}
 
     const characterName = () => {
         const root = document.querySelector('#app');
@@ -42,6 +45,14 @@ export function markChatMessagesScript(): string {
             const kind = author && bubble ? classifyChatMessage(author.textContent, messageText(bubble), name) : null;
             setMark(message, 'data-emush-own', kind === 'own');
             setMark(message, 'data-emush-mention', kind === 'mention');
+        }
+        for (const log of document.querySelectorAll('.comms-panel .chatbox .log')) {
+            // Room logs (Log.vue): the character's name in bold first, then the wording.
+            const line = log.querySelector('.text-log > span');
+            const who = line && line.firstElementChild && line.firstChild === line.firstElementChild && line.firstElementChild.tagName === 'STRONG'
+                ? line.firstElementChild.textContent
+                : null;
+            setMark(log, 'data-emush-movement', who !== null && isMovementLog(line.textContent.slice(who.length)));
         }
     };
 

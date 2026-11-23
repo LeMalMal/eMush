@@ -1,7 +1,10 @@
 import { BrowserWindow, ipcMain, IpcMainEvent, IpcMainInvokeEvent, screen } from 'electron';
-import { LoadMiniPanel } from '../pages/mini';
+import type { ChatTarget } from '../background/events';
+import { LoadMiniPanel, parseChatTarget } from '../pages/mini';
+import { SendChatMessage } from '../pages/sendMessage';
 
-export const MINI_SIZE = { width: 360, height: 600 };
+/** Tall enough for the chat and its message field; smaller screens get the height they have. */
+export const MINI_SIZE = { width: 360, height: 720 };
 const SCREEN_MARGIN = 12;
 const MINI_COMMANDS = ['open-game', 'open-window', 'open-death', 'pin', 'unpin', 'close'] as const;
 type MiniCommand = typeof MINI_COMMANDS[number];
@@ -11,6 +14,12 @@ export type MiniPanelDependencies = {
     preload: string;
     iconPath: string;
     loadView: LoadMiniPanel;
+    /** Writes in the chat from the panel (checked again with the server). */
+    sendMessage: SendChatMessage;
+    /** A message was sent from the panel: the game's own chat shows it too. */
+    onMessageSent(): void;
+    /** A message clicked in the panel: shown in the game (its channel, scrolled to it). */
+    showMessage(target: ChatTarget): void;
     openGame(): void;
     openWindow(): void;
     /** The death page, where the epitaph is written. */
@@ -18,11 +27,15 @@ export type MiniPanelDependencies = {
     devTools: boolean;
 };
 
-/** Bottom-right corner of the screen's work area, just above the clock. */
-export function panelPosition(workArea: { x: number; y: number; width: number; height: number }, size = MINI_SIZE): { x: number; y: number } {
+/** Bottom-right corner of the screen's work area, just above the clock, never taller than the screen. */
+export function panelBounds(workArea: { x: number; y: number; width: number; height: number }, size = MINI_SIZE): { x: number; y: number; width: number; height: number } {
+    const height = Math.min(size.height, workArea.height - 2 * SCREEN_MARGIN);
+
     return {
         x: workArea.x + workArea.width - size.width - SCREEN_MARGIN,
-        y: workArea.y + workArea.height - size.height - SCREEN_MARGIN,
+        y: workArea.y + workArea.height - height - SCREEN_MARGIN,
+        width: size.width,
+        height,
     };
 }
 
@@ -35,11 +48,32 @@ export class MiniPanel {
     private pinned = false;
 
     constructor(private readonly deps: MiniPanelDependencies) {
-        ipcMain.handle('mini:load', (event) => {
+        ipcMain.handle('mini:load', (event, channelChoice: unknown) => {
             if (!this.isFromPanel(event)) {
                 return { ok: false, message: 'Requête refusée.' };
             }
-            return deps.loadView.execute();
+            return deps.loadView.execute(channelChoice);
+        });
+        ipcMain.on('mini:show-message', (event, value: unknown) => {
+            const target = parseChatTarget(value);
+            if (!this.isFromPanel(event) || target === null) {
+                console.warn('[mini] Rejected message to show', value);
+                return;
+            }
+            this.hideUnlessPinned();
+            deps.showMessage(target);
+        });
+        ipcMain.handle('mini:send', async (event, request: unknown) => {
+            if (!this.isFromPanel(event)) {
+                console.warn('[mini] Rejected message');
+                return { ok: false, message: 'Requête refusée.' };
+            }
+            const result = await deps.sendMessage.execute(request);
+            if (result.ok) {
+                deps.onMessageSent();
+            }
+
+            return result;
         });
         ipcMain.on('mini:command', (event, command: unknown) => {
             if (!this.isFromPanel(event) || !(MINI_COMMANDS as readonly unknown[]).includes(command)) {
@@ -48,6 +82,18 @@ export class MiniPanel {
             }
             this.run(command as MiniCommand);
         });
+    }
+
+    /** New messages arrived: an open panel shows them now (it waits if the player is writing). */
+    refresh(): void {
+        if (this.window?.isVisible()) {
+            this.window.webContents.send('mini:refresh');
+        }
+    }
+
+    /** Where the panel is while it is shown (the notifications go next to it). */
+    get visibleBounds(): Electron.Rectangle | null {
+        return this.window?.isVisible() ? this.window.getBounds() : null;
     }
 
     toggle(): void {
@@ -62,8 +108,7 @@ export class MiniPanel {
         const window = this.window ?? this.create();
         if (!this.pinned) {
             const display = screen.getDisplayNearestPoint(screen.getCursorScreenPoint());
-            const { x, y } = panelPosition(display.workArea);
-            window.setBounds({ x, y, ...MINI_SIZE });
+            window.setBounds(panelBounds(display.workArea));
         }
         window.show();
         window.focus();
@@ -89,7 +134,7 @@ export class MiniPanel {
                 sandbox: true,
                 nodeIntegration: false,
                 webviewTag: false,
-                spellcheck: false,
+                spellcheck: true, // The reply field (the client's spellchecker setting applies).
                 devTools: this.deps.devTools,
             },
         });

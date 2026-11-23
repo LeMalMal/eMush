@@ -91,9 +91,9 @@ describe('detectEvents', () => {
 
 describe('notification texts and filters', () => {
     it('writes readable French notifications', () => {
-        expect(notificationText({ kind: 'new-cycle', day: 2, cycle: 3 })).toEqual({ title: 'Nouveau cycle', body: 'Jour 2 · Cycle 3 : tes points d\'action sont rechargés.' });
+        expect(notificationText({ kind: 'new-cycle', day: 2, cycle: 3 })).toEqual({ title: 'Nouveau cycle', body: 'Jour 2 · Cycle 3 : tes points d\'action sont rechargés.', visual: { kind: 'cycle' } });
         expect(notificationText({ kind: 'new-messages', added: 1, total: 32, channels: [] }).title).toBe('Nouveau message');
-        expect(notificationText({ kind: 'new-messages', added: 3, total: 34, channels: [] })).toEqual({ title: '3 nouveaux messages', body: 'Tu as 34 messages non lus.' });
+        expect(notificationText({ kind: 'new-messages', added: 3, total: 34, channels: [] })).toEqual({ title: '3 nouveaux messages', body: 'Tu as 34 messages non lus.', visual: { kind: 'message' } });
         expect(notificationText({ kind: 'new-day', day: 3, cycle: 1 }).title).toBe('Jour 3 à bord du Daedalus');
     });
 
@@ -145,6 +145,8 @@ describe('settings', () => {
         expect(parseSettings({ gameLanguage: 'de' }).gameLanguage).toBe('auto');
         expect(parseSettings({ chatTextSize: 'large' }).chatTextSize).toBe('large');
         expect(parseSettings({ chatTextSize: 'huge' }).chatTextSize).toBe('normal');
+        expect(parseSettings({ movementLogs: 'hidden' }).movementLogs).toBe('hidden');
+        expect(parseSettings({ movementLogs: 'gone' }).movementLogs).toBe('compact');
     });
 
     it('persists to a JSON file', () => {
@@ -290,13 +292,13 @@ describe('ship alerts and message previews', () => {
     it('notifies alerts that appear, not those already known', () => {
         expect(detectEvents(alive({ alerts: [] }), alive({ alerts: [fire] }))).toEqual([{ kind: 'new-alert', alert: fire }]);
         expect(detectEvents(alive({ alerts: [fire] }), alive({ alerts: [fire] }))).toEqual([]);
-        expect(notificationText({ kind: 'new-alert', alert: fire })).toEqual({ title: 'Alerte : Incendie', body: 'Un incendie fait rage en Cuisine.' });
+        expect(notificationText({ kind: 'new-alert', alert: fire })).toEqual({ title: 'Alerte : Incendie', body: 'Un incendie fait rage en Cuisine.', visual: { kind: 'alert', alertKey: 'fire' } });
         expect(statusLine(alive({ unread: 0, alerts: [fire] }))).toBe('Jour 2 · Cycle 2 · 1 alerte');
     });
 
     it('names the author of a single new message', () => {
         expect(notificationText({ kind: 'new-messages', added: 1, total: 32, channels: [] }, { author: 'Jin-Su', text: 'Qui va en baie ?', channelId: 7 }))
-            .toEqual({ title: 'Message de Jin-Su', body: 'Qui va en baie ?', chat: { channelId: 7, author: 'Jin-Su', text: 'Qui va en baie ?' } });
+            .toEqual({ title: 'Message de Jin-Su', body: 'Qui va en baie ?', chat: { channelId: 7, author: 'Jin-Su', text: 'Qui va en baie ?' }, visual: { kind: 'message', characterKey: null } });
         expect(notificationText({ kind: 'new-messages', added: 3, total: 34, channels: [] }, { author: 'Jin-Su', text: 'Qui va en baie ?', channelId: 7 }))
             .toMatchObject({ title: '3 nouveaux messages', body: 'Jin-Su : Qui va en baie ?', chat: { channelId: 7 } });
     });
@@ -310,7 +312,7 @@ describe('ship alerts and message previews', () => {
         ]);
 
         expect(await new ReadNewMessages(new EmushApi(server, fake)).execute([{ id: 89607, scope: 'public', added: 1 }])).toEqual([
-            { channelId: 89607, scope: 'public', author: 'Ian', text: 'Réponse non lue' },
+            { channelId: 89607, scope: 'public', author: 'Ian', authorKey: 'ian', text: 'Réponse non lue' },
         ]);
     });
 
@@ -321,7 +323,7 @@ describe('ship alerts and message previews', () => {
         let index = 0;
         const watcher = new GameWatcher({
             takeSnapshot: async () => snapshots[Math.min(index++, 1)],
-            newMessages: async () => [{ channelId: 89607, scope: 'public', author: 'Hua', text: 'On explore ?' }],
+            newMessages: async () => [{ channelId: 89607, scope: 'public', author: 'Hua', authorKey: 'hua', text: 'On explore ?' }],
             notifier,
             status: new FakeStatus(),
             settings: () => DEFAULT_SETTINGS,
@@ -335,7 +337,7 @@ describe('ship alerts and message previews', () => {
         scheduler.run();
         await new Promise((resolve) => setTimeout(resolve, 0));
 
-        expect(notifier.sent).toEqual([{ title: 'Message de Hua', body: 'On explore ?', chat: { channelId: 89607, author: 'Hua', text: 'On explore ?' } }]);
+        expect(notifier.sent).toEqual([{ title: 'Message de Hua', body: 'On explore ?', chat: { channelId: 89607, author: 'Hua', text: 'On explore ?' }, visual: { kind: 'message', characterKey: 'hua' } }]);
         watcher.stop();
     });
 });

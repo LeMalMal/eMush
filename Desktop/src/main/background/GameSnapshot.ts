@@ -85,7 +85,7 @@ export class ReadNewMessages {
     async execute(channels: NewMessages[]): Promise<UnreadMessage[]> {
         const perChannel = await Promise.all(channels.map(async ({ id, scope }) => {
             const messages = await this.api.channelMessages(id).catch(() => []);
-            return unreadNewestFirst(messages).slice(0, UNREAD_PER_CHANNEL).map(({ author, text }) => ({ channelId: id, scope, author, text }));
+            return unreadNewestFirst(messages).slice(0, UNREAD_PER_CHANNEL).map(({ author, authorKey, text }) => ({ channelId: id, scope, author, authorKey, text }));
         }));
 
         return perChannel.flat();

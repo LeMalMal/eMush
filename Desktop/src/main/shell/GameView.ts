@@ -130,7 +130,7 @@ export class GameView implements WebViewPort {
                 this.applyZoom();
             }
             if (next.darkChat !== previous.darkChat || next.largeChat !== previous.largeChat || next.markMessages !== previous.markMessages
-                || next.chatTextSize !== previous.chatTextSize) {
+                || next.chatTextSize !== previous.chatTextSize || next.movementLogs !== previous.movementLogs) {
                 void this.applyPageMode(true);
             }
             if (next.gameLanguage !== previous.gameLanguage && this.isOnGameServer()) {

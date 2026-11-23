@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { chatTextSizeCss, DARK_CHAT_CSS, LARGE_CHAT_CSS, MESSAGE_MARKS_CSS } from './chatTheme';
+import { chatTextSizeCss, DARK_CHAT_CSS, LARGE_CHAT_CSS, MESSAGE_MARKS_CSS, movementLogsCss } from './chatTheme';
 import { fitGameZoom, GAME_MODE_CSS, gamePageCss, isGamePage } from './gameMode';
 
 const origin = 'https://emush.eternaltwin.org';
@@ -36,10 +36,17 @@ describe('isGamePage', () => {
 
 describe('gamePageCss', () => {
     it('adds the chat styles the player chose to the game mode', () => {
-        const all = { darkChat: true, largeChat: true, markMessages: true, chatTextSize: 'large' as const };
-        expect(gamePageCss(all)).toBe([GAME_MODE_CSS, DARK_CHAT_CSS, LARGE_CHAT_CSS, MESSAGE_MARKS_CSS, chatTextSizeCss('large')].join('\n'));
-        expect(gamePageCss({ ...all, largeChat: false, markMessages: false, chatTextSize: 'normal' })).toBe([GAME_MODE_CSS, DARK_CHAT_CSS].join('\n'));
-        expect(gamePageCss({ darkChat: false, largeChat: false, markMessages: false, chatTextSize: 'normal' })).toBe(GAME_MODE_CSS);
+        const all = { darkChat: true, largeChat: true, markMessages: true, chatTextSize: 'large' as const, movementLogs: 'compact' as const };
+        expect(gamePageCss(all)).toBe([GAME_MODE_CSS, DARK_CHAT_CSS, LARGE_CHAT_CSS, MESSAGE_MARKS_CSS, chatTextSizeCss('large'), movementLogsCss('compact')].join('\n'));
+        const plain = { darkChat: false, largeChat: false, markMessages: false, chatTextSize: 'normal' as const, movementLogs: 'normal' as const };
+        expect(gamePageCss({ ...plain, darkChat: true })).toBe([GAME_MODE_CSS, DARK_CHAT_CSS].join('\n'));
+        expect(gamePageCss(plain)).toBe(GAME_MODE_CSS);
+    });
+
+    it('shows comings and goings in the room logs as the game does, dimmed, or not at all', () => {
+        expect(movementLogsCss('normal')).toBe('');
+        expect(movementLogsCss('compact')).toContain('.comms-panel .chatbox .log[data-emush-movement] { padding-top: 1px');
+        expect(movementLogsCss('hidden')).toBe('.comms-panel .chatbox .log[data-emush-movement] { display: none !important; }');
     });
 
     it('scales the chat text, not the pictures, and leaves the game\'s own size alone', () => {

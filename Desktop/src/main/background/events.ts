@@ -1,6 +1,6 @@
 import { ShipAlert } from '../api/models';
 import { AliveSnapshot, GameSnapshot } from './GameSnapshot';
-import { AppSettings } from './settings';
+import { AppSettings } from './settingsModel';
 
 export type WatchEvent =
     | { kind: 'new-day'; day: number; cycle: number | null }
@@ -15,11 +15,18 @@ export type NewMessages = { id: number; scope: string; added: number };
 /** A chat message to show in the game: its channel, author and plain text. */
 export type ChatTarget = { channelId: number; author: string; text: string };
 
-/** The newest message, shown in a notification. */
-export type MessagePreview = ChatTarget;
+/** The newest message, shown in a notification (`authorKey`: the author's character, for their head). */
+export type MessagePreview = ChatTarget & { authorKey?: string | null };
+
+/** What a notification is about, and what to draw next to it: the author's head or the alert's icon. */
+export type NotificationVisual = {
+    kind: 'cycle' | 'day' | 'alert' | 'message' | 'mention' | 'death' | 'info';
+    characterKey?: string | null;
+    alertKey?: string;
+};
 
 /** `chat`: the message a message notification shows when clicked. */
-export type NotificationText = { title: string; body: string; chat?: ChatTarget };
+export type NotificationText = { title: string; body: string; chat?: ChatTarget; visual?: NotificationVisual };
 
 const BODY_LENGTH = 140;
 
@@ -74,28 +81,36 @@ export function notificationText(event: WatchEvent, preview: MessagePreview | nu
             return {
                 title: `Jour ${event.day} à bord du Daedalus`,
                 body: `Un nouveau jour commence${event.cycle !== null ? ` (cycle ${event.cycle})` : ''} : tes points d'action sont rechargés.`,
+                visual: { kind: 'day' },
             };
         case 'new-cycle':
             return {
                 title: 'Nouveau cycle',
                 body: `${event.day !== null ? `Jour ${event.day} · ` : ''}Cycle ${event.cycle} : tes points d'action sont rechargés.`,
+                visual: { kind: 'cycle' },
             };
         case 'new-alert':
-            return { title: `Alerte : ${event.alert.name}`, body: shorten(event.alert.description || 'Une nouvelle alerte touche le Daedalus.') };
+            return {
+                title: `Alerte : ${event.alert.name}`,
+                body: shorten(event.alert.description || 'Une nouvelle alerte touche le Daedalus.'),
+                visual: { kind: 'alert', alertKey: event.alert.key },
+            };
         case 'new-messages':
             if (preview !== null) {
                 return {
                     title: event.added === 1 ? `Message de ${preview.author}` : `${event.added} nouveaux messages`,
                     body: shorten(event.added === 1 ? preview.text : `${preview.author} : ${preview.text}`),
                     chat: { channelId: preview.channelId, author: preview.author, text: preview.text },
+                    visual: { kind: 'message', characterKey: preview.authorKey ?? null },
                 };
             }
             return {
                 title: event.added === 1 ? 'Nouveau message' : `${event.added} nouveaux messages`,
                 body: event.total === 1 ? 'Tu as 1 message non lu.' : `Tu as ${event.total} messages non lus.`,
+                visual: { kind: 'message' },
             };
         case 'death':
-            return { title: `${event.character} est tombé`, body: 'Laisse ton épitaphe pour clore l\'aventure.' };
+            return { title: `${event.character} est tombé`, body: 'Laisse ton épitaphe pour clore l\'aventure.', visual: { kind: 'death' } };
     }
 }
 

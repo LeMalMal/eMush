@@ -508,9 +508,8 @@ body.mini { overflow: hidden; background: var(--space); }
 .mini-cycle { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; }
 .mini-countdown { font: 22px var(--font-title); font-variant-numeric: tabular-nums; }
 .mini-points { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
-.mini-point { display: grid; justify-items: center; gap: 2px; padding: 6px 2px; }
-.mini-point b { font: 15px var(--font-title); }
-.mini-point span { font: 11px var(--font-pixel); color: var(--bright-cyan); }
+.mini-point { display: flex; justify-content: center; align-items: center; gap: 5px; padding: 4px 2px; }
+.mini-point b { font: 14px var(--font-title); white-space: nowrap; }
 .mini-alerts { display: flex; flex-wrap: wrap; gap: 6px; }
 .mini-alerts .tag { display: inline-flex; align-items: center; gap: 4px; }
 /* The game's banner gauges: oxygen, fuel, hull, plasma shield, crew alive. */
@@ -518,6 +517,57 @@ body.mini { overflow: hidden; background: var(--space); }
 .mini-gauge { display: inline-flex; align-items: center; gap: 5px; }
 .mini-gauge b { font: 15px var(--font-title); }
 .mini-gauge.low b { color: var(--mush-red); }
+/* Mush-styled notifications (src/toast): a stack of tooltip frames next to the clock. */
+body.toasts { background: transparent; overflow: hidden; }
+.toast-stack { display: grid; gap: 8px; padding: 8px; }
+.toast {
+    --accent: var(--cyan);
+    position: relative; display: grid; grid-template-columns: 40px 1fr; gap: 10px; align-items: start;
+    padding: 10px 30px 12px 10px; cursor: pointer; overflow: hidden;
+    box-shadow: inset 3px 0 0 var(--accent), 0 0 0 2px var(--tip-edge), 0 0 14px var(--box-glow);
+    animation: toast-in .25s ease-out;
+}
+.toast:hover { filter: brightness(1.12); }
+.toast-alert, .toast-death { --accent: var(--mush-red); }
+.toast-mention { --accent: #ff5fa2; }
+.toast-cycle, .toast-day { --accent: var(--green); }
+.toast-image { width: 40px; height: 40px; object-fit: contain; image-rendering: pixelated; background: var(--slot); box-shadow: inset 0 0 0 1px var(--slot-edge); }
+.toast-text { display: grid; gap: 2px; min-width: 0; }
+.toast-label { font: 11px var(--font-pixel); color: var(--accent); letter-spacing: .04em; }
+.toast-title { font: 15px var(--font-title); color: #fff; overflow-wrap: anywhere; }
+.toast-body { margin: 0; font: 13px/1.35 var(--font-text); color: var(--ink); overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.toast-action { margin-top: 3px; font: 11px var(--font-pixel); color: var(--light-cyan); }
+.toast-close { position: absolute; top: 6px; right: 6px; width: 20px; height: 20px; padding: 0; border: 0; background: none; color: var(--soft); font-size: 16px; line-height: 1; }
+.toast-close:hover { color: #fff; }
+.toast-timer { position: absolute; left: 0; right: 0; bottom: 0; height: 2px; background: var(--accent); transform-origin: left; transform: scaleX(1); }
+@keyframes toast-in { from { opacity: 0; transform: translateX(24px); } to { opacity: 1; transform: none; } }
+.mini-tabs { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 6px; }
+.mini-tab {
+    display: inline-flex; align-items: center; gap: 5px; padding: 3px 9px; border: 1px solid var(--grey-blue); background: var(--slightly-deep-blue);
+    color: var(--light-cyan); font: 12px var(--font-pixel);
+}
+.mini-tab[aria-selected="true"] { background: var(--tip-edge); color: #fff; border-color: var(--bright-cyan); }
+.mini-tab-unread { padding: 0 4px; background: var(--orange); color: #111; font: 700 11px var(--font-text); }
+.mini-chat li { cursor: pointer; }
+.mini-chat li:hover { background: rgba(57, 101, 251, .18); }
+.mini-chat li.own { box-shadow: inset 3px 0 0 #84e100; background: rgba(132, 225, 0, .08); }
+.mini-chat li.mention { box-shadow: inset 0 0 0 1px #ff5fa2, 0 0 8px rgba(255, 95, 162, .45); }
+.mini-composer { display: grid; gap: 4px; padding: 6px 0 0; border-top: 1px solid rgba(57, 101, 251, .35); margin-top: 6px; }
+.mini-composer[hidden] { display: none; }
+.mini-input {
+    width: 100%; height: 32px; resize: none; padding: 5px 7px; transition: height .12s; border: 1px solid var(--grey-blue); border-radius: 0; background: #070b33;
+    color: var(--ink); font: 13px/1.35 var(--font-text);
+}
+.mini-input:focus { outline: none; border-color: var(--bright-cyan); }
+.mini-input:focus, .mini-input:not(:placeholder-shown) { height: 72px; } /* One line until the player writes. */
+.btn.small { padding: 3px 12px; font-size: 12px; }
+.mini-composer-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.mini-status { font-size: 12px; color: var(--soft); }
+.mini-status.error { color: var(--em-red); }
+.mini-reply { display: flex; align-items: center; justify-content: space-between; font-size: 12px; color: var(--light-cyan); }
+.mini-reply[hidden] { display: none; }
+.mini-reply-button { margin-left: auto; padding: 0 4px; border: 0; background: none; color: var(--label); font-size: 13px; opacity: .6; }
+.mini-reply-button:hover { opacity: 1; color: #fff; }
 .mini-orbit { display: flex; align-items: center; gap: 10px; padding: 6px 10px; background: rgba(9, 10, 97, .55); box-shadow: inset 0 0 0 1px rgba(57, 101, 251, .45); }
 .mini-orbit img { width: 53px; height: 53px; flex: none; }
 .mini-orbit div { display: grid; gap: 1px; }

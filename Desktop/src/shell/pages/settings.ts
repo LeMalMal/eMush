@@ -1,4 +1,4 @@
-import type { AppSettings, ChatTextSize, GameLanguage, GameLanguageSetting } from '../../main/background/settingsModel';
+import type { AppSettings, ChatTextSize, GameLanguage, GameLanguageSetting, MovementLogMode } from '../../main/background/settingsModel';
 import type { SettingsView } from '../../main/pages/view';
 import { bridge } from '../bridge';
 import { h } from '../dom';
@@ -12,6 +12,12 @@ const TEXT_SIZE_CHOICES: { value: ChatTextSize; label: string }[] = [
     { value: 'normal', label: 'Normal' },
     { value: 'large', label: 'Grand' },
     { value: 'larger', label: 'Très grand' },
+];
+
+const MOVEMENT_CHOICES: { value: MovementLogMode; label: string }[] = [
+    { value: 'normal', label: 'Normales' },
+    { value: 'compact', label: 'Discrètes' },
+    { value: 'hidden', label: 'Masquées' },
 ];
 
 const LANGUAGE_NAMES: Record<GameLanguage, string> = { fr: 'Français', en: 'English', es: 'Español' };
@@ -61,7 +67,7 @@ function settingsPage(initial: SettingsView, context: PageContext): HTMLElement 
             h('div', { class: 'two-cols' },
                 h('section', { class: 'frame pad' },
                     sectionTitle('Notifications'),
-                    h('p', { class: 'muted' }, 'Envoyées par Windows quand la fenêtre d’eMush n’est pas au premier plan.'),
+                    h('p', { class: 'muted' }, 'Près de l’horloge, aux couleurs du jeu, quand la fenêtre d’eMush n’est pas au premier plan.'),
                     toggle('newCycles', 'Nouveaux cycles', 'Toutes les 3 heures, quand tes points d’action sont rechargés.'),
                     toggle('newDays', 'Nouveaux jours', 'Au début de chaque jour à bord.'),
                     toggle('messages', 'Messages du chat', 'Avec le nom de l’auteur et le début du message.'),
@@ -71,6 +77,7 @@ function settingsPage(initial: SettingsView, context: PageContext): HTMLElement 
                         toggle('messagesMush', 'Canal Mush', 'Si tu es Mush.', !settings.messages)),
                     toggle('mentions', 'Quand on parle de toi', 'Un message qui cite le nom de ton personnage, même dans un canal coupé.'),
                     toggle('alerts', 'Alertes du vaisseau', 'Incendie, hunters, oxygène, coque… dès qu’une alerte apparaît.'),
+                    toggle('notificationSound', 'Son', 'Le son de notification de Windows quand une notification arrive.'),
                     h('div', { class: 'toolbar' }, h('button', { class: 'btn', type: 'button', onclick: () => bridge.command('test-notification') }, 'Tester une notification'))),
                 h('section', { class: 'frame pad' },
                     sectionTitle('Arrière-plan'),
@@ -93,6 +100,11 @@ function settingsPage(initial: SettingsView, context: PageContext): HTMLElement 
                     h('div', { class: 'zoom-row' },
                         h('span', { class: 'setting-text' }, h('b', {}, 'Taille du texte du chat'), h('span', {}, 'Messages, logs et zone de saisie ; les portraits et icônes gardent leur taille.')),
                         segmented(TEXT_SIZE_CHOICES, settings.chatTextSize, (chatTextSize) => void save({ chatTextSize }), 'Taille du texte du chat')),
+                    h('div', { class: 'zoom-row' },
+                        h('span', { class: 'setting-text' },
+                            h('b', {}, 'Entrées et sorties dans les logs'),
+                            h('span', {}, 'Les « X est entré / sorti » de la pièce. Masquées, elles ne passent plus en lu : « Marquer le canal comme lu » s’en charge.')),
+                        segmented(MOVEMENT_CHOICES, settings.movementLogs, (movementLogs) => void save({ movementLogs }), 'Entrées et sorties dans les logs')),
                     toggle('markMessages', 'Repérer tes messages et les mentions', 'Tes messages ont un liseré vert, ceux qui citent ton personnage un halo rose.'),
                     h('div', { class: 'zoom-row' },
                         h('span', { class: 'setting-text' }, h('b', {}, 'Ajustement du zoom'), h('span', {}, 'Aussi avec Ctrl + / Ctrl − dans le jeu, Ctrl + 0 pour revenir.')),

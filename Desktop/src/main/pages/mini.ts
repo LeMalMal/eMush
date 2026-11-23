@@ -1,5 +1,7 @@
 import { EmushApi } from '../api/EmushApi';
-import { ChatMessage, Gauge, ShipState } from '../api/models';
+import { ChannelSummary, ChatMessage, Gauge, ShipState } from '../api/models';
+import type { ChatTarget } from '../background/events';
+import { classifyChatMessage } from '../background/names';
 import { characterFullName } from './characters';
 import { formatDayCycle } from './format';
 import { load } from './load';
@@ -11,7 +13,19 @@ const MESSAGES_SHOWN = 14;
 export type MiniPoint = { icon: 'pa' | 'pm' | 'hp' | 'moral'; label: string; value: number; max: number | null };
 /** A gauge of the game's banner: oxygen, fuel, hull, plasma shield, crew alive. */
 export type MiniShipGauge = { icon: 'oxygen' | 'fuel' | 'hull' | 'shield' | 'shield_off' | 'crew'; label: string; value: string; low: boolean };
-export type MiniMessage = { id: number; authorKey: string | null; author: string; text: string; date: string | null; unread: boolean; reply: boolean };
+/**
+ * `threadId`: the thread's first message, which a reply answers (the game replies to threads, not to replies).
+ * `mark`: the character's own message, or one naming the character (same rules as the game's chat marks).
+ */
+export type MiniMessage = {
+    id: number; threadId: number; authorKey: string | null; author: string; text: string; date: string | null; unread: boolean; reply: boolean;
+    mark: 'own' | 'mention' | null;
+};
+/** A chat channel the panel can show: public, private or Mush. */
+export type MiniChannel = { id: number; scope: string; name: string; unread: number };
+
+/** Channels the panel shows, in the game's order of importance. */
+const CHAT_SCOPES = ['public', 'private', 'mush'];
 
 /** What the small panel next to the clock shows. */
 export type MiniView =
@@ -31,17 +45,19 @@ export type MiniView =
         titles: string[];
         diseases: string[];
         alerts: { name: string; description: string }[];
-        channel: { name: string; unread: number } | null;
+        /** The channel shown (the public one unless the player picked another). */
+        channel: MiniChannel | null;
+        channels: MiniChannel[];
         messages: MiniMessage[];
     };
 
 /** Newest first, each thread followed by its replies (newest reply first), capped for a small window. */
-export function flattenMessages(messages: ChatMessage[], limit = MESSAGES_SHOWN): MiniMessage[] {
+export function flattenMessages(messages: ChatMessage[], characterName = '', limit = MESSAGES_SHOWN): MiniMessage[] {
     const rows: MiniMessage[] = [];
     for (const message of messages) {
-        rows.push(toRow(message, false));
+        rows.push(toRow(message, false, message.id, characterName));
         for (const reply of [...message.replies].reverse()) {
-            rows.push(toRow(reply, true));
+            rows.push(toRow(reply, true, message.id, characterName));
         }
         if (rows.length >= limit) {
             break;
@@ -51,8 +67,44 @@ export function flattenMessages(messages: ChatMessage[], limit = MESSAGES_SHOWN)
     return rows.slice(0, limit);
 }
 
-function toRow(message: ChatMessage, reply: boolean): MiniMessage {
-    return { id: message.id, authorKey: message.authorKey, author: message.author, text: message.text, date: message.date, unread: message.unread, reply };
+function toRow(message: ChatMessage, reply: boolean, threadId: number, characterName: string): MiniMessage {
+    return {
+        id: message.id, threadId, authorKey: message.authorKey, author: message.author, text: message.text, date: message.date, unread: message.unread, reply,
+        mark: classifyChatMessage(message.author, message.text, characterName),
+    };
+}
+
+/** The chat channels as tabs: "Public", "Privé" (numbered when there are several), "Mush". */
+export function chatChannels(channels: ChannelSummary[]): MiniChannel[] {
+    const shown = channels
+        .filter((channel) => CHAT_SCOPES.includes(channel.scope))
+        .sort((a, b) => CHAT_SCOPES.indexOf(a.scope) - CHAT_SCOPES.indexOf(b.scope));
+    const privates = shown.filter((channel) => channel.scope === 'private');
+
+    return shown.map(({ id, scope, unread }) => ({
+        id,
+        scope,
+        unread,
+        name: scope === 'public' ? 'Public' : scope === 'mush' ? 'Mush' : privates.length > 1 ? `Privé ${privates.findIndex((channel) => channel.id === id) + 1}` : 'Privé',
+    }));
+}
+
+/** Reads a channel id asked by the panel (untrusted); null to show the public channel. */
+export function parseChannelChoice(value: unknown): number | null {
+    return typeof value === 'number' && Number.isSafeInteger(value) && value > 0 ? value : null;
+}
+
+/** Reads a message the panel asks to show in the game (untrusted). */
+export function parseChatTarget(value: unknown): ChatTarget | null {
+    if (typeof value !== 'object' || value === null) {
+        return null;
+    }
+    const { channelId, author, text } = value as Record<string, unknown>;
+    if (parseChannelChoice(channelId) === null || typeof author !== 'string' || author.length > 100 || typeof text !== 'string' || text.length > 5000) {
+        return null;
+    }
+
+    return { channelId: channelId as number, author, text };
 }
 
 function point(icon: MiniPoint['icon'], label: string, gauge: Gauge | null): MiniPoint[] {
@@ -89,7 +141,8 @@ export function shipGauges(ship: ShipState): MiniShipGauge[] {
 export class LoadMiniPanel {
     constructor(private readonly api: EmushApi) {}
 
-    execute(): Promise<Loaded<MiniView>> {
+    /** `channelChoice`: the channel picked in the panel's tabs (untrusted), the public one otherwise. */
+    execute(channelChoice: unknown = null): Promise<Loaded<MiniView>> {
         return load(async (): Promise<MiniView> => {
             const account = await this.api.me();
             if (account === null) {
@@ -111,7 +164,9 @@ export class LoadMiniPanel {
                 this.api.channels(),
                 player.shipId === null ? Promise.resolve([]) : this.api.alerts(player.shipId).catch(() => []),
             ]);
-            const channel = channels.find((candidate) => candidate.scope === 'public') ?? channels[0] ?? null;
+            const tabs = chatChannels(channels);
+            const chosen = parseChannelChoice(channelChoice);
+            const channel = tabs.find((candidate) => candidate.id === chosen) ?? tabs.find((candidate) => candidate.scope === 'public') ?? tabs[0] ?? null;
             const messages = channel === null ? [] : await this.api.channelMessages(channel.id).catch(() => []);
             const { actionPoints, movementPoints, healthPoints, moralPoints } = player.points;
 
@@ -132,8 +187,9 @@ export class LoadMiniPanel {
                 titles: player.titles,
                 diseases: player.diseases,
                 alerts: alerts.map(({ name: alertName, description }) => ({ name: alertName, description })),
-                channel: channel === null ? null : { name: channel.name || 'Discussion', unread: channel.unread },
-                messages: flattenMessages(messages),
+                channel,
+                channels: tabs,
+                messages: flattenMessages(messages, player.characterName),
             };
         });
     }

@@ -94,6 +94,14 @@ for (const [key, file] of Object.entries(portraits)) {
 // NERON writes in the chat too: the game shows it with this small head.
 copy(join(images, 'comms', 'neron-mini.png'), join(img, 'heads', 'neron.png'));
 
+// Mush-styled notifications: the game's alert icons (keys of src/main/tray/toastView.ts), calendar and chat.
+for (const alert of ['infoalert', 'o2alert', 'fire', 'door', 'broken', 'simulator', 'simulator_reboot', 'hunger', 'hunter', 'comm']) {
+    copy(join(images, 'alerts', `${alert}.png`), join(img, 'alerts', `${alert}.png`));
+}
+copy(join(images, 'shield.png'), join(img, 'alerts', 'hull.png'));
+copy(join(images, 'comms', 'calendar.png'), join(img, 'toast', 'calendar.png'));
+copy(join(images, 'comms', 'wall.png'), join(img, 'toast', 'chat.png'));
+
 // Planet in orbit (mini panel, home page), with the picture ids of src/main/pages/orbit.ts.
 for (const planet of ['0', '1', '2', '3', '4', '2048']) {
     copy(join(images, 'astro', `planet_${planet}_small.png`), join(img, 'planets', `${planet}.png`));

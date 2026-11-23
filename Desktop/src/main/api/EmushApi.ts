@@ -153,6 +153,15 @@ export class EmushApi {
         return response.status === 200 ? parseMessages(await response.json()) : [];
     }
 
+    /** Posts a message (or a reply to a thread) in a channel: the same request as the web client's message input. */
+    async sendMessage(channelId: number, playerId: number, message: string, parentId: number | null): Promise<JoinResult> {
+        return this.send(
+            `channel/${channelId}/message`,
+            { message, playerId, parent: parentId, isPirated: false, timeLimit: 48 },
+            'Le serveur a refusé le message',
+        );
+    }
+
     /** The ship currently boarding for this language, created by the server if needed (as the web client does). */
     async crewOffer(language: Language): Promise<CrewOffer | null> {
         const response = await this.get(`daedaluses/available-characters?${new URLSearchParams({ language })}`);

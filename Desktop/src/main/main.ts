@@ -152,6 +152,10 @@ function start(): void {
                 preload: path.join(distDir, 'preload', 'mini.js'),
                 devTools: config.devTools,
             },
+            toasts: {
+                file: path.join(staticDir, 'toast', 'index.html'),
+                preload: path.join(distDir, 'preload', 'toast.js'),
+            },
             game: gameView,
             trace: config.devTools,
         });

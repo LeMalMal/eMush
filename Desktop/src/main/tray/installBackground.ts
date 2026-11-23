@@ -6,10 +6,14 @@ import { GameWatcher } from '../background/GameWatcher';
 import { SettingsService } from '../background/settings';
 import { FocusRefreshThrottle } from '../shell/refreshGameChat';
 import { ShellNavigator } from '../shell/ShellNavigator';
-import { ElectronNotifier } from './ElectronNotifier';
+import fs from 'node:fs';
+import path from 'node:path';
+import { pathToFileURL } from 'node:url';
+import { MushNotifier } from './MushNotifier';
 import { TrayController } from './TrayController';
 import { MiniPanel } from '../mini/MiniPanel';
 import { LoadMiniPanel } from '../pages/mini';
+import { SendChatMessage } from '../pages/sendMessage';
 
 export type BackgroundDependencies = {
     window: BrowserWindow;
@@ -19,6 +23,8 @@ export type BackgroundDependencies = {
     icons: { tray: string; badge: string; notification: string };
     /** The small panel next to the clock. */
     mini: { file: string; preload: string; devTools: boolean };
+    /** The Mush-styled notifications' page and preload. */
+    toasts: { file: string; preload: string };
     /** The web game, whose chat is reloaded when new messages arrive (it has no live updates). */
     game: { readonly isShowingGame: boolean; refreshChat(): Promise<unknown>; showMessage(target: ChatTarget): Promise<unknown> };
     /** Logs every check (development builds). */
@@ -35,7 +41,7 @@ export type Background = {
  * Keeps eMush alive in the background: notification-area icon, close/minimize to the tray,
  * and the game watch that raises Windows notifications for cycles, days, alerts and chat messages.
  */
-export function installBackground({ window, api, navigator, settings, icons, mini, game, trace }: BackgroundDependencies): Background {
+export function installBackground({ window, api, navigator, settings, icons, mini, toasts, game, trace }: BackgroundDependencies): Background {
     let quitting = false;
     const focusRefresh = new FocusRefreshThrottle();
 
@@ -62,22 +68,32 @@ export function installBackground({ window, api, navigator, settings, icons, min
         app.quit();
     };
 
-    const notifier = new ElectronNotifier(icons.notification, (clicked) => {
-        const state = watcher.lastSnapshot?.state;
-        if (state === 'alive') {
-            resumeGame();
-            if (clicked.chat !== undefined) {
-                void game.showMessage(clicked.chat); // Its channel, scrolled to the message.
+    const chime = windowsNotificationSound();
+    const notifier = new MushNotifier({
+        file: toasts.file,
+        preload: toasts.preload,
+        devTools: mini.devTools,
+        onClick: (clicked) => {
+            const state = watcher.lastSnapshot?.state;
+            if (state === 'alive') {
+                resumeGame();
+                if (clicked.chat !== undefined) {
+                    void game.showMessage(clicked.chat); // Its channel, scrolled to the message.
+                }
+            } else if (state === 'dead') {
+                openDeath();
+            } else {
+                openWindow();
             }
-        } else if (state === 'dead') {
-            openDeath();
-        } else {
-            openWindow();
-        }
-    }, trace);
+        },
+        avoid: () => panel.visibleBounds,
+        chime: () => (settings.get().notificationSound ? chime : null),
+        trace,
+    });
     const testNotification = (): void => notifier.notify({
         title: 'Notifications eMush actives',
         body: 'Tu seras prévenu des nouveaux cycles, des nouveaux jours, des alertes et des messages.',
+        visual: { kind: 'info' },
     });
 
     const panel = new MiniPanel({
@@ -86,6 +102,12 @@ export function installBackground({ window, api, navigator, settings, icons, min
         devTools: mini.devTools,
         iconPath: icons.notification,
         loadView: new LoadMiniPanel(api),
+        sendMessage: new SendChatMessage(api),
+        onMessageSent: () => void game.refreshChat(),
+        showMessage: (target) => {
+            resumeGame();
+            void game.showMessage(target);
+        },
         openGame: resumeGame,
         openWindow,
         openDeath,
@@ -125,6 +147,7 @@ export function installBackground({ window, api, navigator, settings, icons, min
         onEvents: (events) => {
             if (events.some((event) => event.kind === 'new-messages')) {
                 void game.refreshChat();
+                panel.refresh();
             }
         },
         schedule: (callback, delay) => {
@@ -174,4 +197,11 @@ export function installBackground({ window, api, navigator, settings, icons, min
     watcher.start();
 
     return { quit, testNotification, togglePanel: () => panel.toggle() };
+}
+
+/** Windows' own notification sound, as a file URL (null when Windows has none). */
+function windowsNotificationSound(): string | null {
+    const file = path.join(process.env.WINDIR ?? 'C:\\Windows', 'Media', 'Windows Notify System Generic.wav');
+
+    return fs.existsSync(file) ? pathToFileURL(file).toString() : null;
 }

@@ -13,7 +13,7 @@ function newMessages(...channels: NewMessages[]) {
 }
 
 function message(channel: NewMessages, author: string, text: string): UnreadMessage {
-    return { channelId: channel.id, scope: channel.scope, author, text };
+    return { channelId: channel.id, scope: channel.scope, author, authorKey: author.toLowerCase(), text };
 }
 
 describe('mentions', () => {
@@ -49,6 +49,7 @@ describe('messageNotification', () => {
             title: 'Roland parle de toi',
             body: 'Gioele, rejoins-moi en baie',
             chat: { channelId: 7, author: 'Roland', text: 'Gioele, rejoins-moi en baie' },
+            visual: { kind: 'mention', characterKey: 'roland' },
         });
     });
 
@@ -66,6 +67,7 @@ describe('messageNotification', () => {
             title: 'Message de Chun',
             body: 'On infecte qui ?',
             chat: { channelId: 66, author: 'Chun', text: 'On infecte qui ?' },
+            visual: { kind: 'message', characterKey: 'chun' },
         });
         expect(messageNotification(newMessages(PUBLIC), messages, settings, 'Gioele')).toBeNull();
     });
@@ -79,6 +81,6 @@ describe('messageNotification', () => {
     });
 
     it('still notifies with a count when the messages could not be read', () => {
-        expect(messageNotification(newMessages(PUBLIC), [], DEFAULT_SETTINGS, 'Gioele')).toEqual({ title: '2 nouveaux messages', body: 'Tu as 40 messages non lus.' });
+        expect(messageNotification(newMessages(PUBLIC), [], DEFAULT_SETTINGS, 'Gioele')).toEqual({ title: '2 nouveaux messages', body: 'Tu as 40 messages non lus.', visual: { kind: 'message' } });
     });
 });
