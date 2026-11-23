@@ -5,14 +5,19 @@ import { describe, expect, it } from 'vitest';
 import { EmushApi } from '../api/EmushApi';
 import { FakeGameServer, SAMPLE_ACCOUNT, SAMPLE_PLAYER_IN_GAME } from '../api/FakeGameServer';
 import { detectEvents, notificationText, shouldNotify, statusLine } from './events';
-import { AliveSnapshot, GameSnapshot, PreviewLatestMessage, TakeGameSnapshot } from './GameSnapshot';
+import { AliveSnapshot, GameSnapshot, ReadNewMessages, TakeGameSnapshot } from './GameSnapshot';
 import { CHAT_CHECK_INTERVAL_MS, GameWatcher, nextCheckDelay, Notifier, PLAYING_CHAT_CHECK_INTERVAL_MS, StatusSink } from './GameWatcher';
 import { DEFAULT_SETTINGS, JsonFileSettingsStore, NotificationSettings, parseSettings, SettingsService } from './settings';
 
 const server = new URL('https://emush.eternaltwin.org');
 
+/** A living character; its unread messages are all in the public channel unless `channels` says otherwise. */
 function alive(overrides: Partial<AliveSnapshot> = {}): AliveSnapshot {
-    return { state: 'alive', character: 'Gioele Rinaldo', day: 2, cycle: 2, nextCycleAt: new Date('2026-11-22T12:00:00Z'), unread: 31, unreadChannels: [89607], alerts: [], ...overrides };
+    const unread = overrides.unread ?? 31;
+    return {
+        state: 'alive', character: 'Gioele Rinaldo', name: 'Gioele', day: 2, cycle: 2, nextCycleAt: new Date('2026-11-22T12:00:00Z'),
+        unread, channels: [{ id: 89607, scope: 'public', unread }], alerts: [], ...overrides,
+    };
 }
 
 describe('TakeGameSnapshot', () => {
@@ -28,8 +33,8 @@ describe('TakeGameSnapshot', () => {
             .respond('alert/77/alerts', 200, [{ prefix: 'Alertes :', key: 'communications_down', name: 'Pas de liaison', description: 'Le Daedalus n’a pas de **liaison** avec Sol !' }]);
 
         expect(await new TakeGameSnapshot(new EmushApi(server, fake)).execute()).toEqual({
-            state: 'alive', character: 'Kim Jin-Su', day: 2, cycle: 3, nextCycleAt: new Date('2026-11-21T23:00:00Z'), unread: 33,
-            unreadChannels: [89607, 90001],
+            state: 'alive', character: 'Kim Jin-Su', name: 'Jin-Su', day: 2, cycle: 3, nextCycleAt: new Date('2026-11-21T23:00:00Z'), unread: 33,
+            channels: [{ id: 89607, scope: 'public', unread: 31 }, { id: 90001, scope: 'private', unread: 2 }],
             alerts: [{ key: 'communications_down', name: 'Pas de liaison', description: 'Le Daedalus n’a pas de liaison avec Sol !' }],
         });
     });
@@ -59,12 +64,19 @@ describe('detectEvents', () => {
     it('detects a new cycle and new messages', () => {
         expect(detectEvents(alive(), alive({ cycle: 3, unread: 34 }))).toEqual([
             { kind: 'new-cycle', day: 2, cycle: 3 },
-            { kind: 'new-messages', added: 3, total: 34 },
+            { kind: 'new-messages', added: 3, total: 34, channels: [{ id: 89607, scope: 'public', added: 3 }] },
         ]);
     });
 
     it('reports a new day instead of a new cycle when the day changes', () => {
         expect(detectEvents(alive({ day: 2, cycle: 8 }), alive({ day: 3, cycle: 1 }))).toEqual([{ kind: 'new-day', day: 3, cycle: 1 }]);
+    });
+
+    it('tells in which channels the new messages arrived, even while others are being read', () => {
+        const before = alive({ unread: 12, channels: [{ id: 89607, scope: 'public', unread: 10 }, { id: 7, scope: 'private', unread: 2 }] });
+        const after = alive({ unread: 3, channels: [{ id: 89607, scope: 'public', unread: 0 }, { id: 7, scope: 'private', unread: 3 }] });
+
+        expect(detectEvents(before, after)).toEqual([{ kind: 'new-messages', added: 1, total: 3, channels: [{ id: 7, scope: 'private', added: 1 }] }]);
     });
 
     it('stays quiet when messages are read or nothing changed', () => {
@@ -80,15 +92,16 @@ describe('detectEvents', () => {
 describe('notification texts and filters', () => {
     it('writes readable French notifications', () => {
         expect(notificationText({ kind: 'new-cycle', day: 2, cycle: 3 })).toEqual({ title: 'Nouveau cycle', body: 'Jour 2 · Cycle 3 : tes points d\'action sont rechargés.' });
-        expect(notificationText({ kind: 'new-messages', added: 1, total: 32 }).title).toBe('Nouveau message');
-        expect(notificationText({ kind: 'new-messages', added: 3, total: 34 })).toEqual({ title: '3 nouveaux messages', body: 'Tu as 34 messages non lus.' });
+        expect(notificationText({ kind: 'new-messages', added: 1, total: 32, channels: [] }).title).toBe('Nouveau message');
+        expect(notificationText({ kind: 'new-messages', added: 3, total: 34, channels: [] })).toEqual({ title: '3 nouveaux messages', body: 'Tu as 34 messages non lus.' });
         expect(notificationText({ kind: 'new-day', day: 3, cycle: 1 }).title).toBe('Jour 3 à bord du Daedalus');
     });
 
     it('follows the player settings', () => {
-        const quiet: NotificationSettings = { ...DEFAULT_SETTINGS, newCycles: false, newDays: false, messages: false };
+        const quiet: NotificationSettings = { ...DEFAULT_SETTINGS, newCycles: false, newDays: false, messages: false, mentions: false };
         expect(shouldNotify({ kind: 'new-cycle', day: 2, cycle: 3 }, quiet)).toBe(false);
-        expect(shouldNotify({ kind: 'new-messages', added: 1, total: 1 }, quiet)).toBe(false);
+        expect(shouldNotify({ kind: 'new-messages', added: 1, total: 1, channels: [] }, quiet)).toBe(false);
+        expect(shouldNotify({ kind: 'new-messages', added: 1, total: 1, channels: [] }, { ...quiet, mentions: true })).toBe(true);
         expect(shouldNotify({ kind: 'death', character: 'X' }, quiet)).toBe(true);
     });
 
@@ -130,6 +143,8 @@ describe('settings', () => {
         expect(parseSettings({ darkChat: false, largeChat: 'no' })).toEqual({ ...DEFAULT_SETTINGS, darkChat: false });
         expect(parseSettings({ gameLanguage: 'es' }).gameLanguage).toBe('es');
         expect(parseSettings({ gameLanguage: 'de' }).gameLanguage).toBe('auto');
+        expect(parseSettings({ chatTextSize: 'large' }).chatTextSize).toBe('large');
+        expect(parseSettings({ chatTextSize: 'huge' }).chatTextSize).toBe('normal');
     });
 
     it('persists to a JSON file', () => {
@@ -280,10 +295,10 @@ describe('ship alerts and message previews', () => {
     });
 
     it('names the author of a single new message', () => {
-        expect(notificationText({ kind: 'new-messages', added: 1, total: 32 }, { author: 'Jin-Su', text: 'Qui va en baie ?' }))
-            .toEqual({ title: 'Message de Jin-Su', body: 'Qui va en baie ?' });
-        expect(notificationText({ kind: 'new-messages', added: 3, total: 34 }, { author: 'Jin-Su', text: 'Qui va en baie ?' }))
-            .toEqual({ title: '3 nouveaux messages', body: 'Jin-Su : Qui va en baie ?' });
+        expect(notificationText({ kind: 'new-messages', added: 1, total: 32, channels: [] }, { author: 'Jin-Su', text: 'Qui va en baie ?', channelId: 7 }))
+            .toEqual({ title: 'Message de Jin-Su', body: 'Qui va en baie ?', chat: { channelId: 7, author: 'Jin-Su', text: 'Qui va en baie ?' } });
+        expect(notificationText({ kind: 'new-messages', added: 3, total: 34, channels: [] }, { author: 'Jin-Su', text: 'Qui va en baie ?', channelId: 7 }))
+            .toMatchObject({ title: '3 nouveaux messages', body: 'Jin-Su : Qui va en baie ?', chat: { channelId: 7 } });
     });
 
     it('finds the newest unread message, replies included', async () => {
@@ -294,7 +309,9 @@ describe('ship alerts and message previews', () => {
             ] },
         ]);
 
-        expect(await new PreviewLatestMessage(new EmushApi(server, fake)).execute([89607])).toEqual({ author: 'Ian', text: 'Réponse non lue' });
+        expect(await new ReadNewMessages(new EmushApi(server, fake)).execute([{ id: 89607, scope: 'public', added: 1 }])).toEqual([
+            { channelId: 89607, scope: 'public', author: 'Ian', text: 'Réponse non lue' },
+        ]);
     });
 
     it('adds the author to the notification through the watcher', async () => {
@@ -304,7 +321,7 @@ describe('ship alerts and message previews', () => {
         let index = 0;
         const watcher = new GameWatcher({
             takeSnapshot: async () => snapshots[Math.min(index++, 1)],
-            previewMessage: async () => ({ author: 'Hua', text: 'On explore ?' }),
+            newMessages: async () => [{ channelId: 89607, scope: 'public', author: 'Hua', text: 'On explore ?' }],
             notifier,
             status: new FakeStatus(),
             settings: () => DEFAULT_SETTINGS,
@@ -318,7 +335,7 @@ describe('ship alerts and message previews', () => {
         scheduler.run();
         await new Promise((resolve) => setTimeout(resolve, 0));
 
-        expect(notifier.sent).toEqual([{ title: 'Message de Hua', body: 'On explore ?' }]);
+        expect(notifier.sent).toEqual([{ title: 'Message de Hua', body: 'On explore ?', chat: { channelId: 89607, author: 'Hua', text: 'On explore ?' } }]);
         watcher.stop();
     });
 });

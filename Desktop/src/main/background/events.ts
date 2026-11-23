@@ -1,15 +1,25 @@
 import { ShipAlert } from '../api/models';
-import { GameSnapshot, MessagePreview } from './GameSnapshot';
+import { AliveSnapshot, GameSnapshot } from './GameSnapshot';
 import { AppSettings } from './settings';
 
 export type WatchEvent =
     | { kind: 'new-day'; day: number; cycle: number | null }
     | { kind: 'new-cycle'; day: number | null; cycle: number }
-    | { kind: 'new-messages'; added: number; total: number }
+    | { kind: 'new-messages'; added: number; total: number; channels: NewMessages[] }
     | { kind: 'new-alert'; alert: ShipAlert }
     | { kind: 'death'; character: string };
 
-export type NotificationText = { title: string; body: string };
+/** Messages that arrived in one channel since the previous check. */
+export type NewMessages = { id: number; scope: string; added: number };
+
+/** A chat message to show in the game: its channel, author and plain text. */
+export type ChatTarget = { channelId: number; author: string; text: string };
+
+/** The newest message, shown in a notification. */
+export type MessagePreview = ChatTarget;
+
+/** `chat`: the message a message notification shows when clicked. */
+export type NotificationText = { title: string; body: string; chat?: ChatTarget };
 
 const BODY_LENGTH = 140;
 
@@ -40,8 +50,9 @@ export function detectEvents(previous: GameSnapshot | null, next: GameSnapshot):
             events.push({ kind: 'new-alert', alert });
         }
     }
-    if (next.unread > previous.unread) {
-        events.push({ kind: 'new-messages', added: next.unread - previous.unread, total: next.unread });
+    const channels = newMessagesPerChannel(previous, next);
+    if (channels.length > 0) {
+        events.push({ kind: 'new-messages', added: channels.reduce((sum, channel) => sum + channel.added, 0), total: next.unread, channels });
     }
 
     return events;
@@ -51,7 +62,7 @@ export function shouldNotify(event: WatchEvent, settings: AppSettings): boolean 
     switch (event.kind) {
         case 'new-day': return settings.newDays || settings.newCycles;
         case 'new-cycle': return settings.newCycles;
-        case 'new-messages': return settings.messages;
+        case 'new-messages': return settings.messages || settings.mentions;
         case 'new-alert': return settings.alerts;
         case 'death': return true;
     }
@@ -76,6 +87,7 @@ export function notificationText(event: WatchEvent, preview: MessagePreview | nu
                 return {
                     title: event.added === 1 ? `Message de ${preview.author}` : `${event.added} nouveaux messages`,
                     body: shorten(event.added === 1 ? preview.text : `${preview.author} : ${preview.text}`),
+                    chat: { channelId: preview.channelId, author: preview.author, text: preview.text },
                 };
             }
             return {
@@ -103,6 +115,15 @@ export function statusLine(snapshot: GameSnapshot): string {
     }
 }
 
-function shorten(text: string): string {
+/** Channels whose unread count went up (reading a channel while another one gets messages still counts). */
+function newMessagesPerChannel(previous: AliveSnapshot, next: AliveSnapshot): NewMessages[] {
+    const before = new Map(previous.channels.map((channel) => [channel.id, channel.unread]));
+
+    return next.channels
+        .map((channel) => ({ id: channel.id, scope: channel.scope, added: channel.unread - (before.get(channel.id) ?? 0) }))
+        .filter((channel) => channel.added > 0);
+}
+
+export function shorten(text: string): string {
     return text.length <= BODY_LENGTH ? text : `${text.slice(0, BODY_LENGTH - 1).trimEnd()}…`;
 }

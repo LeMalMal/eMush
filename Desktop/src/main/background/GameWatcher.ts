@@ -1,5 +1,6 @@
-import { detectEvents, notificationText, NotificationText, shouldNotify, WatchEvent } from './events';
-import { GameSnapshot, MessagePreview } from './GameSnapshot';
+import { detectEvents, NewMessages, notificationText, NotificationText, shouldNotify, WatchEvent } from './events';
+import { GameSnapshot } from './GameSnapshot';
+import { messageNotification, UnreadMessage } from './messageNotification';
 import { NotificationSettings } from './settings';
 
 export const CHAT_CHECK_INTERVAL_MS = 60_000;
@@ -28,8 +29,8 @@ export type GameWatcherPorts = {
     notifier: Notifier;
     status: StatusSink;
     settings(): NotificationSettings;
-    /** Who wrote the newest unread message, to show it in the notification (optional). */
-    previewMessage?(channelIds: number[]): Promise<MessagePreview | null>;
+    /** The unread messages of the channels that got new ones: who wrote, and whether they name the character (optional). */
+    newMessages?(channels: NewMessages[]): Promise<UnreadMessage[]>;
     /** True while the player has the window in front of them: no toast then. */
     isPlayerLooking(): boolean;
     /** True while the player has the game page itself in front of them: the chat is checked more often. */
@@ -137,10 +138,18 @@ export class GameWatcher {
             if (!shouldNotify(event, settings)) {
                 continue;
             }
-            const preview = event.kind === 'new-messages' && snapshot.state === 'alive' && this.ports.previewMessage
-                ? await this.ports.previewMessage(snapshot.unreadChannels).catch(() => null)
-                : null;
-            this.ports.notifier.notify(notificationText(event, preview));
+            if (event.kind !== 'new-messages') {
+                this.ports.notifier.notify(notificationText(event));
+                continue;
+            }
+            if (snapshot.state !== 'alive') {
+                continue;
+            }
+            const messages = this.ports.newMessages ? await this.ports.newMessages(event.channels).catch(() => []) : [];
+            const text = messageNotification(event, messages, settings, snapshot.name);
+            if (text !== null) {
+                this.ports.notifier.notify(text);
+            }
         }
     }
 }

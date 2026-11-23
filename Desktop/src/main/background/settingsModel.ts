@@ -6,11 +6,21 @@ export type GameLanguage = typeof GAME_LANGUAGES[number];
 /** `auto` follows the language of Windows. */
 export type GameLanguageSetting = GameLanguage | 'auto';
 
+/** Sizes of the text of the game's chat, smallest first. */
+export const CHAT_TEXT_SIZES = ['small', 'normal', 'large', 'larger'] as const;
+export type ChatTextSize = typeof CHAT_TEXT_SIZES[number];
+
 /** Player preferences: notifications, background behaviour, game display. */
 export type AppSettings = {
     newCycles: boolean;
     newDays: boolean;
     messages: boolean;
+    /** Which channels' messages notify (when `messages` is on). */
+    messagesPublic: boolean;
+    messagesPrivate: boolean;
+    messagesMush: boolean;
+    /** A message naming the character always notifies, even from a muted channel. */
+    mentions: boolean;
     /** Ship alerts: fire, hunters, low oxygen... */
     alerts: boolean;
     /** Closing the window keeps the game running in the notification area. */
@@ -25,10 +35,16 @@ export type AppSettings = {
     gameAutoZoom: boolean;
     /** Language of the web game's menus and buttons (the web client's own selector is in its hidden top bar). */
     gameLanguage: GameLanguageSetting;
+    /** Misspelled words underlined in the chat (and the client's text fields), with suggestions on right-click. */
+    spellcheck: boolean;
     /** The game's chat in the client's dark style instead of the web client's pale cyan. */
     darkChat: boolean;
     /** The game's chat stretched to the full height of the game, and wider on wide windows. */
     largeChat: boolean;
+    /** The character's own messages and the messages naming the character stand out in the game's chat. */
+    markMessages: boolean;
+    /** Text size of the game's chat (messages, logs, message input); icons keep their size. */
+    chatTextSize: ChatTextSize;
     /** Player's adjustment over the automatic zoom, in 25 % steps (-2 to +2). */
     gameZoomOffset: number;
     /** The one-time explanation shown the first time the window goes to the tray. */
@@ -42,6 +58,10 @@ export const DEFAULT_SETTINGS: AppSettings = {
     newCycles: true,
     newDays: true,
     messages: true,
+    messagesPublic: true,
+    messagesPrivate: true,
+    messagesMush: true,
+    mentions: true,
     alerts: true,
     closeToTray: true,
     minimizeToTray: false,
@@ -49,13 +69,16 @@ export const DEFAULT_SETTINGS: AppSettings = {
     startMinimized: true,
     gameAutoZoom: true,
     gameLanguage: 'auto',
+    spellcheck: true,
     darkChat: true,
     largeChat: true,
+    markMessages: true,
+    chatTextSize: 'normal',
     gameZoomOffset: 0,
     trayHintShown: false,
 };
 
-const BOOLEAN_KEYS = ['newCycles', 'newDays', 'messages', 'alerts', 'closeToTray', 'minimizeToTray', 'launchAtStartup', 'startMinimized', 'gameAutoZoom', 'darkChat', 'largeChat', 'trayHintShown'] as const;
+const BOOLEAN_KEYS = ['newCycles', 'newDays', 'messages', 'messagesPublic', 'messagesPrivate', 'messagesMush', 'mentions', 'alerts', 'closeToTray', 'minimizeToTray', 'launchAtStartup', 'startMinimized', 'gameAutoZoom', 'spellcheck', 'darkChat', 'largeChat', 'markMessages', 'trayHintShown'] as const;
 const ZOOM_OFFSET_LIMIT = 2;
 
 /** Reads settings from untrusted JSON (file or shell page). Unknown or invalid values keep their default. */
@@ -66,6 +89,9 @@ export function parseSettings(value: unknown, base: AppSettings = DEFAULT_SETTIN
         if (typeof input[key] === 'boolean') {
             settings[key] = input[key] as boolean;
         }
+    }
+    if ((CHAT_TEXT_SIZES as readonly unknown[]).includes(input.chatTextSize)) {
+        settings.chatTextSize = input.chatTextSize as ChatTextSize;
     }
     if (isGameLanguageSetting(input.gameLanguage)) {
         settings.gameLanguage = input.gameLanguage;

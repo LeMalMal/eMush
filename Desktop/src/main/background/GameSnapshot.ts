@@ -1,6 +1,8 @@
 import { ApiUnavailableError, EmushApi } from '../api/EmushApi';
 import { ChatMessage, ShipAlert } from '../api/models';
 import { characterFullName } from '../pages/characters';
+import { NewMessages } from './events';
+import { UnreadMessage } from './messageNotification';
 
 /** What the background watch knows about the player's game at one moment. */
 export type GameSnapshot =
@@ -10,19 +12,22 @@ export type GameSnapshot =
     | {
         state: 'alive';
         character: string;
+        /** The character's name in the game ("Jin-Su"), as players write it in the chat. */
+        name: string;
         day: number | null;
         cycle: number | null;
         nextCycleAt: Date | null;
         unread: number;
-        /** Channels holding unread messages, to find who wrote. */
-        unreadChannels: number[];
+        /** Unread messages of each chat channel, to tell where new messages arrive. */
+        channels: UnreadChannel[];
         alerts: ShipAlert[];
     }
     | { state: 'dead'; character: string };
 
 export type AliveSnapshot = Extract<GameSnapshot, { state: 'alive' }>;
 
-export type MessagePreview = { author: string; text: string };
+/** The newest unread message, and the channel it was written in. */
+export type UnreadChannel = { id: number; scope: string; unread: number };
 
 /** Reads the player's situation from the game API (account, player, chat channels, ship alerts). */
 export class TakeGameSnapshot {
@@ -53,11 +58,12 @@ export class TakeGameSnapshot {
             return {
                 state: 'alive',
                 character,
+                name: player.characterName,
                 day: player.day,
                 cycle: player.cycle,
                 nextCycleAt: player.nextCycleAt,
                 unread: channels.reduce((sum, channel) => sum + channel.unread, 0),
-                unreadChannels: channels.filter((channel) => channel.unread > 0).map((channel) => channel.id),
+                channels: channels.map(({ id, scope, unread }) => ({ id, scope, unread })),
                 alerts,
             };
         } catch (error) {
@@ -69,34 +75,27 @@ export class TakeGameSnapshot {
     }
 }
 
-/** Newest unread message (or reply) among the given channels, to show who wrote in a notification. */
-export class PreviewLatestMessage {
+/** Unread messages kept per channel: enough to find a mention among the newest ones. */
+const UNREAD_PER_CHANNEL = 20;
+
+/** The unread messages (and replies) of the channels that got new ones, newest first, to word the notification. */
+export class ReadNewMessages {
     constructor(private readonly api: EmushApi) {}
 
-    async execute(channelIds: number[]): Promise<MessagePreview | null> {
-        for (const channelId of channelIds) {
-            const messages = await this.api.channelMessages(channelId).catch(() => []);
-            const unread = firstUnread(messages);
-            if (unread !== null) {
-                return { author: unread.author, text: unread.text };
-            }
-        }
+    async execute(channels: NewMessages[]): Promise<UnreadMessage[]> {
+        const perChannel = await Promise.all(channels.map(async ({ id, scope }) => {
+            const messages = await this.api.channelMessages(id).catch(() => []);
+            return unreadNewestFirst(messages).slice(0, UNREAD_PER_CHANNEL).map(({ author, text }) => ({ channelId: id, scope, author, text }));
+        }));
 
-        return null;
+        return perChannel.flat();
     }
 }
 
 /** Messages come newest first; a thread's replies can be newer than its first message. */
-export function firstUnread(messages: ChatMessage[]): ChatMessage | null {
-    for (const message of messages) {
-        const reply = [...message.replies].reverse().find((candidate) => candidate.unread);
-        if (reply) {
-            return reply;
-        }
-        if (message.unread) {
-            return message;
-        }
-    }
-
-    return null;
+export function unreadNewestFirst(messages: ChatMessage[]): ChatMessage[] {
+    return messages.flatMap((message) => [
+        ...[...message.replies].reverse().filter((reply) => reply.unread),
+        ...(message.unread ? [message] : []),
+    ]);
 }

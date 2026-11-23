@@ -61,8 +61,12 @@ The shell reuses the game's own design language (`App/src/assets/scss`), not a g
 - **Closing the window keeps eMush running** in the notification area (setting); minimizing there is optional.
 - **Background watch** (`src/main/background/`): checks the game right after each new cycle and every
   minute for the chat, then raises Windows notifications for new cycles, new days, ship alerts (fire,
-  hunters, oxygen…), chat messages (with the author and the start of the message) and death. Nothing is
-  shown while the window is in front of the player. Clicking a notification opens the game.
+  hunters, oxygen…), chat messages (with the author and the start of the message; public, private and Mush channels can each be
+  muted) and death. A message naming the character ("X parle de toi") always notifies, even from a muted channel
+  (setting, `src/main/background/messageNotification.ts`). Nothing is
+  shown while the window is in front of the player. Clicking a notification opens the game; a message notification opens the message's channel, scrolls
+  the chat to it (unfolding its thread if needed) and makes it flash, as the game marks a message read as soon
+  as the mouse passes over it (`src/main/shell/openGameChannel.ts`).
 - **Live chat**: the web game has no live updates, so the client reloads its chat (the game's own
   `communication/loadAlivePlayerChannels` action) when the watch finds new messages and when the player
   comes back to the window (`src/main/shell/refreshGameChat.ts`). On the game page, the chat is checked
@@ -74,6 +78,8 @@ The shell reuses the game's own design language (`App/src/assets/scss`), not a g
   colours where each kind of line stands out (players' bubbles, NERON, triumph gains and private logs, revealed and
   secret logs, timestamps), and a large chat that fills the full height of the game and takes the free width of wide
   windows. Both are settings, on by default, applied without reloading; narrow windows keep the web layout.
+  The character's own messages get a green edge and the ones naming the character a pink glow (setting;
+  `src/main/shell/markChatMessages.ts` marks them, with the same name rules as the "X parle de toi" notification).
 - **Taskbar**: a badge while chat messages are unread, a flash when a cycle, a day or an alert begins.
 - **Mini panel** (click on the notification-area icon, or Ctrl+Shift+M): the character's AP, MP, HP and
   moral, a live countdown to the next cycle, the ship's gauges (oxygen, fuel, hull, plasma shield, crew
@@ -82,7 +88,8 @@ The shell reuses the game's own design language (`App/src/assets/scss`), not a g
   to open the game (or to write the epitaph once the character is dead). It closes when the player clicks elsewhere, unless pinned: then it stays on top, can be
   moved, and only its × closes it.
 - **Settings page** (native): notifications, background behaviour, launch with Windows and start in
-  the background (installed app only), game language, automatic game zoom and its adjustment, dark and large chat, licences and
+  the background (installed app only), game language, spellchecker, automatic game zoom and its adjustment, dark and large chat, chat text size
+  (90 to 130 %, pictures untouched), own messages and mentions marks, licences and
   source code.
   Settings live in `%APPDATA%/eMush/settings.json` (`SettingsService` validates every change).
 
@@ -91,7 +98,9 @@ The shell reuses the game's own design language (`App/src/assets/scss`), not a g
 | Feature | Details |
 | --- | --- |
 | Native window | Remembers size, position, maximized and fullscreen state (safe if a monitor is unplugged). F11 fullscreen, Ctrl ± zoom of game pages, Ctrl+R / F5 reload, Ctrl+H home. |
+| Search (Ctrl+F) | A search bar in the navigation bar searches the web page shown (game, chat and logs, forum, rules) with Chromium's find: matches highlighted, count, Enter / Shift+Enter for next / previous, Escape to close. In the chat, only the loaded messages are searched. |
 | Single instance | Launching it twice focuses the existing window. |
+| Right-click and spelling | A right-click menu like a browser's (undo, cut, copy, paste, select all, copy a link) on the game and the native pages, with spelling suggestions. The spellchecker follows the game language (setting, on by default) and uses the Windows spellchecker: no dictionary is downloaded. |
 | Offline | Native pages show "server unreachable" with a retry button; web pages show a local offline page. |
 | Link handling | The game, Eternaltwin and its login providers (Discord, GitLab) stay in the window; wiki, Discord invites and other sites open in the default browser. |
 | Steam | Optional: Steamworks init, overlay (Shift+Tab), rich presence. Achievements are ready on the client side (see roadmap). Without Steam, the app runs normally. |

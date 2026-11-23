@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { DARK_CHAT_CSS, LARGE_CHAT_CSS } from './chatTheme';
+import { chatTextSizeCss, DARK_CHAT_CSS, LARGE_CHAT_CSS, MESSAGE_MARKS_CSS } from './chatTheme';
 import { fitGameZoom, GAME_MODE_CSS, gamePageCss, isGamePage } from './gameMode';
 
 const origin = 'https://emush.eternaltwin.org';
@@ -36,9 +36,16 @@ describe('isGamePage', () => {
 
 describe('gamePageCss', () => {
     it('adds the chat styles the player chose to the game mode', () => {
-        expect(gamePageCss({ darkChat: true, largeChat: true })).toBe([GAME_MODE_CSS, DARK_CHAT_CSS, LARGE_CHAT_CSS].join('\n'));
-        expect(gamePageCss({ darkChat: true, largeChat: false })).toBe([GAME_MODE_CSS, DARK_CHAT_CSS].join('\n'));
-        expect(gamePageCss({ darkChat: false, largeChat: false })).toBe(GAME_MODE_CSS);
+        const all = { darkChat: true, largeChat: true, markMessages: true, chatTextSize: 'large' as const };
+        expect(gamePageCss(all)).toBe([GAME_MODE_CSS, DARK_CHAT_CSS, LARGE_CHAT_CSS, MESSAGE_MARKS_CSS, chatTextSizeCss('large')].join('\n'));
+        expect(gamePageCss({ ...all, largeChat: false, markMessages: false, chatTextSize: 'normal' })).toBe([GAME_MODE_CSS, DARK_CHAT_CSS].join('\n'));
+        expect(gamePageCss({ darkChat: false, largeChat: false, markMessages: false, chatTextSize: 'normal' })).toBe(GAME_MODE_CSS);
+    });
+
+    it('scales the chat text, not the pictures, and leaves the game\'s own size alone', () => {
+        expect(chatTextSizeCss('normal')).toBe('');
+        expect(chatTextSizeCss('larger')).toBe('.comms-panel .chatbox, .comms-panel .chat-input .input-area { font-size: 130% !important; }');
+        expect(chatTextSizeCss('small')).toContain('font-size: 90%');
     });
 
     it('only restyles the chat panel, so the rest of the game keeps its look', () => {

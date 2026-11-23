@@ -1,3 +1,5 @@
+import type { ChatTextSize } from '../background/settingsModel';
+
 /**
  * Restyling of the web game's chat (App/src/components/Game/Communications), injected as CSS on the
  * game page: the game's code is not modified, so every feature of its chat keeps working as-is.
@@ -84,6 +86,34 @@ export const DARK_CHAT_CSS = `
 
 /** The game shows the chat as a column next to the room from this width ($breakpoint-desktop-m + 1). */
 const WIDE_LAYOUT_MIN_WIDTH_PX = 961;
+
+/**
+ * Marks of markChatMessages.ts: the character's own messages get a green edge and tint, the messages
+ * naming the character a pink glow (orange stays the game's "unread" mark). They read on both the
+ * game's pale chat and the dark one, hence colours on top of the bubble's own background.
+ */
+export const MESSAGE_MARKS_CSS = `
+.comms-panel .chatbox .message[data-emush-own] > .text {
+    box-shadow: inset 4px 0 0 #84e100, inset 0 0 0 1px rgba(132, 225, 0, .55) !important;
+    background-image: linear-gradient(rgba(132, 225, 0, .14), rgba(132, 225, 0, .14)) !important;
+}
+.comms-panel .chatbox .message[data-emush-mention] > .text {
+    box-shadow: 0 0 0 2px #ff5fa2, 0 0 12px rgba(255, 95, 162, .65) !important;
+}
+`;
+
+/** Text size of the chat for each setting, in % of the game's own. */
+export const CHAT_TEXT_SCALE: Record<ChatTextSize, number> = { small: 90, normal: 100, large: 115, larger: 130 };
+
+/**
+ * Chat text size: the game sizes its chat text in `em`, so scaling the chat box scales messages, logs and
+ * times together, while pictures (portraits, icons) keep their crisp pixel size. Nothing for "normal".
+ */
+export function chatTextSizeCss(size: ChatTextSize): string {
+    const scale = CHAT_TEXT_SCALE[size];
+
+    return scale === 100 ? '' : `.comms-panel .chatbox, .comms-panel .chat-input .input-area { font-size: ${scale}% !important; }`;
+}
 
 /** Widest the game may grow on a wide window: the extra width goes to the chat column. */
 export const LARGE_GAME_MAX_WIDTH_PX = 1440;

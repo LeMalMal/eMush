@@ -8,11 +8,12 @@ export type MenuActions = {
     resetZoom(): void;
     toggleDevTools(): void;
     togglePanel(): void;
+    find(): void;
 };
 
 /**
  * Hidden menu bar (Alt shows it on Windows) that mainly provides keyboard shortcuts:
- * Ctrl+H home, F5/Ctrl+R reload, Ctrl +/-/0 zoom of the game pages, F11 fullscreen, F12 dev tools when enabled.
+ * Ctrl+H home, Ctrl+F search in the page, F5/Ctrl+R reload, Ctrl +/-/0 zoom of the game pages, F11 fullscreen, F12 dev tools when enabled.
  */
 export function buildApplicationMenu(options: { devTools: boolean; actions: MenuActions }): Menu {
     const { actions } = options;
@@ -42,7 +43,7 @@ export function buildApplicationMenu(options: { devTools: boolean; actions: Menu
                 { role: 'quit', label: 'Quitter' },
             ],
         },
-        { label: 'Édition', submenu: [{ role: 'undo' }, { role: 'redo' }, { type: 'separator' }, { role: 'cut' }, { role: 'copy' }, { role: 'paste' }, { role: 'selectAll' }] },
+        { label: 'Édition', submenu: [{ role: 'undo' }, { role: 'redo' }, { type: 'separator' }, { role: 'cut' }, { role: 'copy' }, { role: 'paste' }, { role: 'selectAll' }, { type: 'separator' }, { label: 'Rechercher', accelerator: 'CmdOrCtrl+F', click: () => actions.find() }] },
         { label: 'Affichage', submenu: view },
     ]);
 }

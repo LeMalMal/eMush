@@ -1,4 +1,5 @@
-import { DARK_CHAT_CSS, LARGE_CHAT_CSS } from './chatTheme';
+import type { ChatTextSize } from '../background/settingsModel';
+import { chatTextSizeCss, DARK_CHAT_CSS, LARGE_CHAT_CSS, MESSAGE_MARKS_CSS } from './chatTheme';
 
 /**
  * "Game mode": the web game page (`/game`) has a fixed layout of about 1080 × 600 px. On a big
@@ -20,8 +21,14 @@ export const GAME_MODE_CSS = [
 ].join('\n');
 
 /** Game mode CSS plus the chat styles the player chose. */
-export function gamePageCss(chat: { darkChat: boolean; largeChat: boolean }): string {
-    return [GAME_MODE_CSS, chat.darkChat ? DARK_CHAT_CSS : '', chat.largeChat ? LARGE_CHAT_CSS : ''].filter((css) => css !== '').join('\n');
+export function gamePageCss(chat: { darkChat: boolean; largeChat: boolean; markMessages: boolean; chatTextSize: ChatTextSize }): string {
+    return [
+        GAME_MODE_CSS,
+        chat.darkChat ? DARK_CHAT_CSS : '',
+        chat.largeChat ? LARGE_CHAT_CSS : '',
+        chat.markMessages ? MESSAGE_MARKS_CSS : '', // After the chat styles, which it draws on.
+        chatTextSizeCss(chat.chatTextSize),
+    ].filter((css) => css !== '').join('\n');
 }
 
 export function isGamePage(rawUrl: string, serverOrigin: string): boolean {

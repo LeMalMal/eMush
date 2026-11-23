@@ -1,4 +1,4 @@
-import type { AppSettings, GameLanguage, GameLanguageSetting } from '../../main/background/settingsModel';
+import type { AppSettings, ChatTextSize, GameLanguage, GameLanguageSetting } from '../../main/background/settingsModel';
 import type { SettingsView } from '../../main/pages/view';
 import { bridge } from '../bridge';
 import { h } from '../dom';
@@ -6,6 +6,13 @@ import { PageContext, showLoaded } from '../page';
 import { pageHead, sectionTitle, segmented } from '../ui';
 
 type BooleanKey = { [K in keyof AppSettings]: AppSettings[K] extends boolean ? K : never }[keyof AppSettings];
+
+const TEXT_SIZE_CHOICES: { value: ChatTextSize; label: string }[] = [
+    { value: 'small', label: 'Petit' },
+    { value: 'normal', label: 'Normal' },
+    { value: 'large', label: 'Grand' },
+    { value: 'larger', label: 'Très grand' },
+];
 
 const LANGUAGE_NAMES: Record<GameLanguage, string> = { fr: 'Français', en: 'English', es: 'Español' };
 const LANGUAGE_CHOICES: { value: GameLanguageSetting; label: string }[] = [
@@ -58,6 +65,11 @@ function settingsPage(initial: SettingsView, context: PageContext): HTMLElement 
                     toggle('newCycles', 'Nouveaux cycles', 'Toutes les 3 heures, quand tes points d’action sont rechargés.'),
                     toggle('newDays', 'Nouveaux jours', 'Au début de chaque jour à bord.'),
                     toggle('messages', 'Messages du chat', 'Avec le nom de l’auteur et le début du message.'),
+                    h('div', { class: 'setting-children' },
+                        toggle('messagesPublic', 'Canal public', 'La discussion de tout l’équipage.', !settings.messages),
+                        toggle('messagesPrivate', 'Canaux privés', 'Tes conversations privées.', !settings.messages),
+                        toggle('messagesMush', 'Canal Mush', 'Si tu es Mush.', !settings.messages)),
+                    toggle('mentions', 'Quand on parle de toi', 'Un message qui cite le nom de ton personnage, même dans un canal coupé.'),
                     toggle('alerts', 'Alertes du vaisseau', 'Incendie, hunters, oxygène, coque… dès qu’une alerte apparaît.'),
                     h('div', { class: 'toolbar' }, h('button', { class: 'btn', type: 'button', onclick: () => bridge.command('test-notification') }, 'Tester une notification'))),
                 h('section', { class: 'frame pad' },
@@ -74,9 +86,14 @@ function settingsPage(initial: SettingsView, context: PageContext): HTMLElement 
                             h('b', {}, 'Langue du jeu'),
                             h('span', {}, `Menus, boutons et chat du jeu. Auto : la langue de Windows (${LANGUAGE_NAMES[client.systemGameLanguage]}).`)),
                         segmented(LANGUAGE_CHOICES, settings.gameLanguage, (gameLanguage) => void save({ gameLanguage }), 'Langue du jeu')),
+                    toggle('spellcheck', 'Correcteur orthographique', 'Souligne les fautes dans le chat, dans la langue du jeu. Corrections au clic droit.'),
                     toggle('gameAutoZoom', 'Agrandir le jeu automatiquement', 'Le jeu remplit la fenêtre par paliers de 25 %, pixel art net.'),
                     toggle('darkChat', 'Chat sombre', 'Le chat du jeu aux couleurs du client, plus lisible : messages, actions, gains et logs secrets bien distincts.'),
                     toggle('largeChat', 'Chat agrandi', 'Le chat occupe toute la hauteur du jeu, et la largeur libre sur un écran large.'),
+                    h('div', { class: 'zoom-row' },
+                        h('span', { class: 'setting-text' }, h('b', {}, 'Taille du texte du chat'), h('span', {}, 'Messages, logs et zone de saisie ; les portraits et icônes gardent leur taille.')),
+                        segmented(TEXT_SIZE_CHOICES, settings.chatTextSize, (chatTextSize) => void save({ chatTextSize }), 'Taille du texte du chat')),
+                    toggle('markMessages', 'Repérer tes messages et les mentions', 'Tes messages ont un liseré vert, ceux qui citent ton personnage un halo rose.'),
                     h('div', { class: 'zoom-row' },
                         h('span', { class: 'setting-text' }, h('b', {}, 'Ajustement du zoom'), h('span', {}, 'Aussi avec Ctrl + / Ctrl − dans le jeu, Ctrl + 0 pour revenir.')),
                         h('div', { class: 'stepper' },

@@ -34,7 +34,7 @@ export function createMainWindow({ windowStateStore, iconPath, shellPreload, dev
             sandbox: true,
             nodeIntegration: false,
             webviewTag: false,
-            spellcheck: false,
+            spellcheck: true, // The epitaph field; turned on or off with the setting (installSpellcheck).
             devTools,
         },
     });

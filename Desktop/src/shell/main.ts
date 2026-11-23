@@ -1,5 +1,6 @@
 import type { Navigation, ShellPage } from '../main/shell/routes';
 import { bridge } from './bridge';
+import { createFindBar } from './findBar';
 import { h } from './dom';
 import { PageContext } from './page';
 import { renderCrew } from './pages/crew';
@@ -18,6 +19,7 @@ import { loadingState } from './ui';
 const root = document.getElementById('page') as HTMLElement;
 const userPill = document.getElementById('user-pill') as HTMLButtonElement;
 const loginPill = document.getElementById('login-pill') as HTMLButtonElement;
+const findBar = createFindBar(document.querySelector('header.nav') as HTMLElement);
 
 /** Which navigation entry is lit for each page. */
 const SECTION: Record<ShellPage, string | null> = {
@@ -57,6 +59,7 @@ function highlight(navigation: Navigation): void {
 
 function render(navigation: Navigation): void {
     current = navigation;
+    findBar.close(); // A search belongs to the page it was made in.
     highlight(navigation);
     document.querySelector('dialog[open]')?.remove();
 

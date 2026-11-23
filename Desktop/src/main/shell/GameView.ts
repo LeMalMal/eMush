@@ -5,6 +5,9 @@ import { NavigationPolicy } from '../navigation/NavigationPolicy';
 import { SettingsService } from '../background/settings';
 import { fitGameZoom, GAME_ZOOM_STEP, gamePageCss, isGamePage, manualGameZoom } from './gameMode';
 import { applyGameLanguageScript, GameLanguageResult, resolveGameLanguage } from './gameLanguage';
+import { markChatMessagesScript } from './markChatMessages';
+import type { ChatTarget } from '../background/events';
+import { OpenChannelResult, openGameChannelScript } from './openGameChannel';
 import { ChatRefreshResult, KeyboardActivity, RefreshGameChat, refreshGameChatScript } from './refreshGameChat';
 import { WebViewPort } from './ShellNavigator';
 
@@ -68,7 +71,7 @@ export class GameView implements WebViewPort {
                 sandbox: true,
                 nodeIntegration: false,
                 webviewTag: false,
-                spellcheck: false,
+                spellcheck: true, // Turned on or off for the whole session (setting), see installSpellcheck.
                 devTools: options.devTools,
             },
         });
@@ -126,7 +129,8 @@ export class GameView implements WebViewPort {
             if (next.gameAutoZoom !== previous.gameAutoZoom || next.gameZoomOffset !== previous.gameZoomOffset) {
                 this.applyZoom();
             }
-            if (next.darkChat !== previous.darkChat || next.largeChat !== previous.largeChat) {
+            if (next.darkChat !== previous.darkChat || next.largeChat !== previous.largeChat || next.markMessages !== previous.markMessages
+                || next.chatTextSize !== previous.chatTextSize) {
                 void this.applyPageMode(true);
             }
             if (next.gameLanguage !== previous.gameLanguage && this.isOnGameServer()) {
@@ -199,6 +203,21 @@ export class GameView implements WebViewPort {
         return this.chatRefresh.execute();
     }
 
+    /** Shows a chat message in the game: its channel, scrolled to it (waits for the game page to load). */
+    async showMessage(target: ChatTarget): Promise<OpenChannelResult | 'off-game'> {
+        if (this.webContents.isLoading()) {
+            await new Promise<void>((resolve) => this.webContents.once('did-stop-loading', () => resolve()));
+        }
+        if (!this.isOnGamePage()) {
+            return 'off-game';
+        }
+        const failed: OpenChannelResult = { channel: 'not-found', message: 'skipped' };
+        const result = await this.webContents.executeJavaScript(openGameChannelScript(target)).catch(() => failed) as OpenChannelResult;
+        this.trace(`channel ${target.channelId} ${result.channel}, message ${result.message}`, this.webContents.getURL());
+
+        return result;
+    }
+
     private async runChatRefresh(options: { typing: boolean }): Promise<ChatRefreshResult | 'off-game'> {
         if (!this.isOnGamePage() || this.webContents.isLoading()) {
             return 'off-game';
@@ -264,6 +283,9 @@ export class GameView implements WebViewPort {
         }
         if (onGame && this.gameModeCssKey === null) {
             this.gameModeCssKey = await this.webContents.insertCSS(gamePageCss(this.options.settings.get())).catch(() => null);
+        }
+        if (onGame) {
+            await this.webContents.executeJavaScript(markChatMessagesScript()).catch(() => undefined);
         }
         this.applyZoom();
     }

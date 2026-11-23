@@ -19,4 +19,12 @@ contextBridge.exposeInMainWorld('emushShell', Object.freeze({
         ipcRenderer.on('shell:reload', () => listener());
     },
     ready: () => ipcRenderer.send('shell:ready'),
+    find: (request: unknown) => ipcRenderer.send('shell:find', request),
+    stopFind: () => ipcRenderer.send('shell:find-stop'),
+    onFindOpen: (listener: () => void) => {
+        ipcRenderer.on('shell:find-open', () => listener());
+    },
+    onFindResult: (listener: (result: unknown) => void) => {
+        ipcRenderer.on('shell:find-result', (_event, result) => listener(result));
+    },
 }));

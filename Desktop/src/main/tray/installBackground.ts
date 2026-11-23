@@ -1,7 +1,7 @@
 import { app, BrowserWindow } from 'electron';
 import { EmushApi } from '../api/EmushApi';
-import { statusLine } from '../background/events';
-import { GameSnapshot, PreviewLatestMessage, TakeGameSnapshot } from '../background/GameSnapshot';
+import { ChatTarget, statusLine } from '../background/events';
+import { GameSnapshot, ReadNewMessages, TakeGameSnapshot } from '../background/GameSnapshot';
 import { GameWatcher } from '../background/GameWatcher';
 import { SettingsService } from '../background/settings';
 import { FocusRefreshThrottle } from '../shell/refreshGameChat';
@@ -20,7 +20,7 @@ export type BackgroundDependencies = {
     /** The small panel next to the clock. */
     mini: { file: string; preload: string; devTools: boolean };
     /** The web game, whose chat is reloaded when new messages arrive (it has no live updates). */
-    game: { readonly isShowingGame: boolean; refreshChat(): Promise<unknown> };
+    game: { readonly isShowingGame: boolean; refreshChat(): Promise<unknown>; showMessage(target: ChatTarget): Promise<unknown> };
     /** Logs every check (development builds). */
     trace: boolean;
 };
@@ -62,10 +62,13 @@ export function installBackground({ window, api, navigator, settings, icons, min
         app.quit();
     };
 
-    const notifier = new ElectronNotifier(icons.notification, () => {
+    const notifier = new ElectronNotifier(icons.notification, (clicked) => {
         const state = watcher.lastSnapshot?.state;
         if (state === 'alive') {
             resumeGame();
+            if (clicked.chat !== undefined) {
+                void game.showMessage(clicked.chat); // Its channel, scrolled to the message.
+            }
         } else if (state === 'dead') {
             openDeath();
         } else {
@@ -110,10 +113,10 @@ export function installBackground({ window, api, navigator, settings, icons, min
         attention: () => tray.attention(),
     };
 
-    const previews = new PreviewLatestMessage(api);
+    const newMessages = new ReadNewMessages(api);
     const watcher = new GameWatcher({
         takeSnapshot: () => new TakeGameSnapshot(api).execute(),
-        previewMessage: (channelIds) => previews.execute(channelIds),
+        newMessages: (channels) => newMessages.execute(channels),
         notifier,
         status,
         settings: () => settings.get(),

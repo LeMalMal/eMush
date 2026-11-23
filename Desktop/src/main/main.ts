@@ -8,6 +8,8 @@ import { NavigationPolicy } from './navigation/NavigationPolicy';
 import { PermissionPolicy } from './navigation/PermissionPolicy';
 import { resolveGameLanguage } from './shell/gameLanguage';
 import { GameView } from './shell/GameView';
+import { installContextMenu } from './shell/installContextMenu';
+import { installSpellcheck } from './shell/installSpellcheck';
 import { installShell } from './shell/installShell';
 import { connectToSteam } from './steam/connectToSteam';
 import { createMainWindow } from './window/createMainWindow';
@@ -112,6 +114,9 @@ function start(): void {
             settings,
             systemLanguages,
         });
+        installSpellcheck(session.defaultSession, settings, systemLanguages, config.devTools);
+        installContextMenu(window.webContents, window);
+        installContextMenu(gameView.webContents, window);
         const api = new EmushApi(config.serverUrl, sessionHttp(session.defaultSession));
         const client = {
             version: app.getVersion(),
@@ -161,6 +166,7 @@ function start(): void {
                 resetZoom: () => gameView.resetZoom(),
                 toggleDevTools: () => (gameView.isVisible ? gameView.webContents : window.webContents).toggleDevTools(),
                 togglePanel: () => background?.togglePanel(),
+                find: shell.openFind,
             },
         }));
 

@@ -3,6 +3,7 @@ import type {
     AccountView, ArticleView, CrewView, DeathView, HomeView, Loaded, NewsListView, ProfileView, RankingView, SettingsView, ShellCommand,
     ShipEndView,
 } from '../main/pages/view';
+import type { FindRequest, FindResult } from '../main/shell/findInPage';
 import type { Navigation } from '../main/shell/routes';
 
 export type PageViews = {
@@ -31,6 +32,11 @@ export type ShellBridge = {
     onReload(listener: () => void): void;
     /** Tells the main process the page is listening; it answers with the page to draw. */
     ready(): void;
+    /** Ctrl+F search in the web page shown. */
+    find(request: FindRequest): void;
+    stopFind(): void;
+    onFindOpen(listener: () => void): void;
+    onFindResult(listener: (result: FindResult) => void): void;
 };
 
 export const bridge = (window as unknown as { emushShell: ShellBridge }).emushShell;

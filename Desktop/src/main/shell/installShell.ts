@@ -11,6 +11,7 @@ import { LoadProfile } from '../pages/profile';
 import { LoadRanking } from '../pages/ranking';
 import { LoadSettings, UpdateSettings } from '../pages/settings';
 import { GameView } from './GameView';
+import { installFindInPage } from './installFindInPage';
 import { EMUSH_WIKI_URL, Navigation, parseNavigation, resolvePlay } from './routes';
 import { ShellNavigator } from './ShellNavigator';
 
@@ -31,6 +32,8 @@ export type Shell = {
     /** Reloads what is on screen: the web page, or the native page's data. */
     reload(): void;
     showHome(): void;
+    /** Ctrl+F: search in the web page shown. */
+    openFind(): void;
 };
 
 const SHELL_COMMANDS = ['play', 'login', 'logout', 'wiki', 'test-notification'] as const;
@@ -69,6 +72,8 @@ export function installShell({ window, shellFile, gameView, serverUrl, api, sess
     const reject = (channel: string, payload: unknown): void => {
         console.warn(`[shell] Rejected ${channel}`, payload);
     };
+
+    const find = installFindInPage({ shellContents, web: gameView, fromShell, reject });
 
     // The shell page itself never navigates: everything goes through IPC.
     shellContents.on('will-navigate', (event) => event.preventDefault());
@@ -204,6 +209,7 @@ export function installShell({ window, shellFile, gameView, serverUrl, api, sess
     return {
         navigator,
         showHome,
+        openFind: find.open,
         reload: () => {
             if (gameView.isVisible) {
                 gameView.reload();
